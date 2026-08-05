@@ -293,7 +293,7 @@ body.gate-locked{overflow:hidden;}
 
 <footer class="footer">
   <strong>Balfour Beatty Infrastructure, Inc.</strong> · Audits Dashboard Report ·
-  Generated via <strong>J. J. Keller Safety Management Suite</strong> · All Locations · Jan–June 2026
+  Generated via <strong>J. J. Keller Safety Management Suite</strong> · All Locations · <span id="footerRange">Jan–June 2026</span>
 </footer>
 
 <script>
@@ -896,7 +896,8 @@ function processAndRender(){
   buildFilterBar();setLoading(false);
   const dot=document.getElementById('statusDot'),txt=document.getElementById('statusText');
   if(USE_DEMO){dot.className='status-dot demo';txt.textContent='Using built-in data (Jan–May 2026).';}
-  else{dot.className='status-dot';txt.textContent='Live data loaded · '+MONTHS.map(fmtYM).join(', ')+' · '+RAW.events.length+' audit events';}
+  else{dot.className='status-dot';txt.textContent='Data current through '+MONTHS.map(fmtYM).join(', ')+' · '+RAW.events.length+' audit events';}
+  if(MONTHS.length){document.getElementById('footerRange').textContent=fmtYM(MONTHS[0]).split(' ')[0]+'–'+fmtYM(MONTHS[MONTHS.length-1]);}
   renderDashboard('ytd');
   applyDashSettings();
 }
@@ -1034,7 +1035,19 @@ function renderSettingsList(){
   });
 }
 
-loadDemoData();
+(async function bootstrap(){
+  try{
+    const res=await fetch('data.json',{cache:'no-store'});
+    if(!res.ok)throw new Error('no data.json');
+    const d=await res.json();
+    if(!Array.isArray(d.events)||!Array.isArray(d.questions)||!Array.isArray(d.tasks))throw new Error('bad data.json shape');
+    RAW.events=d.events;RAW.questions=d.questions;RAW.tasks=d.tasks;RAW._negQ=null;RAW._posQ=null;
+    USE_DEMO=false;
+    processAndRender();
+  }catch(e){
+    loadDemoData();
+  }
+})();
 
 const BB_ACCESS_HASH='a25b46a7b621d1636bb1294acc769a7308384cbb0cf453525ddb9f37a4d4d901';
 async function sha256Hex(str){
