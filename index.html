@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Audits Dashboard Report — Balfour Beatty Infrastructure, Inc.</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="shortcut icon" href="favicon.ico">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap');
   :root{--bb-navy:#0A1E3C;--bb-blue:#1A4A8A;--bb-sky:#2E7BC4;--bb-accent:#F7A800;--bb-green:#2E7D4F;--bb-red:#B83232;--bb-light:#F0F4FA;--bb-border:#D0DCF0;--bb-text:#1A2640;--bb-muted:#5A6880;--shadow-sm:0 1px 4px rgba(10,30,60,.10);--shadow-md:0 4px 16px rgba(10,30,60,.14);--radius:8px;}
@@ -22,8 +23,6 @@
   .btn{display:flex;align-items:center;gap:7px;border:none;padding:9px 16px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:.3px;cursor:pointer;transition:background .15s,transform .1s;text-decoration:none;white-space:nowrap;}
   .btn-pdf{background:var(--bb-accent);color:var(--bb-navy);}
   .btn-pdf:hover{background:#ffc200;transform:translateY(-1px);}
-  .btn-upload{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);}
-  .btn-upload:hover{background:rgba(255,255,255,.25);}
   .btn svg{width:16px;height:16px;flex-shrink:0;}
   .filterbar{background:#fff;border-bottom:2px solid var(--bb-border);padding:0 32px;display:flex;align-items:center;gap:8px;height:52px;overflow-x:auto;position:sticky;top:64px;z-index:199;box-shadow:var(--shadow-md);}
   .filter-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--bb-muted);white-space:nowrap;margin-right:4px;}
@@ -33,22 +32,6 @@
   .filter-sep{width:1px;height:22px;background:var(--bb-border);margin:0 6px;flex-shrink:0;}
   .group-select{border:1.5px solid var(--bb-border);background:#fff;color:var(--bb-text);padding:5px 28px 5px 10px;border-radius:6px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:500;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%235A6880'%3E%3Cpath d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;outline:none;transition:border-color .15s;}
   .group-select:focus,.group-select:hover{border-color:var(--bb-sky);}
-  .upload-overlay{display:none;position:fixed;inset:0;background:rgba(10,30,60,.7);z-index:500;align-items:center;justify-content:center;}
-  .upload-overlay.show{display:flex;}
-  .upload-modal{background:#fff;border-radius:12px;padding:32px 36px;width:540px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3);}
-  .upload-modal h2{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:22px;color:var(--bb-navy);margin-bottom:6px;}
-  .upload-modal .modal-sub{font-size:13px;color:var(--bb-muted);margin-bottom:24px;}
-  .upload-fields{display:flex;flex-direction:column;gap:14px;margin-bottom:24px;}
-  .upload-field label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--bb-navy);margin-bottom:4px;}
-  .upload-field .field-desc{font-size:11px;color:#9AAABF;margin-bottom:6px;line-height:1.4;}
-  .file-input-wrap{display:flex;align-items:center;gap:10px;border:2px dashed var(--bb-border);border-radius:8px;padding:10px 14px;transition:border-color .15s;}
-  .file-input-wrap:focus-within,.file-input-wrap.has-file{border-color:var(--bb-sky);background:#f5f9ff;}
-  .file-input-wrap input[type=file]{flex:1;font-size:12px;color:var(--bb-text);background:none;border:none;outline:none;cursor:pointer;}
-  .file-icon{color:var(--bb-sky);flex-shrink:0;}
-  .file-name-badge{font-size:11px;font-weight:600;color:var(--bb-green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
-  .upload-actions{display:flex;justify-content:flex-end;gap:10px;}
-  .btn-cancel{background:var(--bb-light);color:var(--bb-muted);}
-  .btn-cancel:hover{background:#e0e8f4;}
   .btn-load{background:var(--bb-blue);color:#fff;}
   .btn-load:hover{background:var(--bb-sky);}
   .btn-load:disabled{opacity:.45;cursor:not-allowed;transform:none;}
@@ -110,7 +93,7 @@
   .page-divider::after{content:attr(data-label);position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--bb-light);padding:0 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--bb-muted);white-space:nowrap;}
   .footer{background:var(--bb-navy);color:rgba(255,255,255,.5);text-align:center;font-size:11px;padding:18px 32px;letter-spacing:.3px;}
   .footer strong{color:rgba(255,255,255,.8);}
-  @media print{.topbar,.filterbar,.statusbar,.upload-overlay,.btn-pdf,.btn-upload{display:none!important;}.main{padding:12px 16px;}body{background:#fff;}.kpi-card,.chart-card{break-inside:avoid;box-shadow:none;}.page-divider{break-before:page;}.footer{display:none;}}
+  @media print{.topbar,.filterbar,.statusbar,.btn-pdf{display:none!important;}.main{padding:12px 16px;}body{background:#fff;}.kpi-card,.chart-card{break-inside:avoid;box-shadow:none;}.page-divider{break-before:page;}.footer{display:none;}}
 .btn-settings{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);padding:9px 12px;}
 .btn-settings:hover{background:rgba(255,255,255,.25);}
 .settings-overlay{display:none;position:fixed;inset:0;background:rgba(10,30,60,.5);z-index:600;}
@@ -191,10 +174,6 @@ body.gate-locked{overflow:hidden;}
       <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
       Customize
     </button>
-    <button class="btn btn-upload" onclick="showUpload()">
-      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 01.707.293l4 4a1 1 0 01-1.414 1.414L11 6.414V13a1 1 0 11-2 0V6.414L6.707 8.707A1 1 0 015.293 7.293l4-4A1 1 0 0110 3zM4 15a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"/></svg>
-      Upload New Data
-    </button>
     <button class="btn btn-pdf" onclick="printToPDF()">
       <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/></svg>
       Print to PDF
@@ -206,50 +185,7 @@ body.gate-locked{overflow:hidden;}
 
 <div class="statusbar" id="statusBar">
   <div class="status-dot demo" id="statusDot"></div>
-  <span id="statusText">Using built-in data (Jan–June 2026). Click "Upload New Data" to load your CSV files.</span>
-</div>
-
-<div class="upload-overlay" id="uploadOverlay">
-  <div class="upload-modal">
-    <h2>Upload Monthly CSV Files</h2>
-    <p class="modal-sub">Export the three sheets listed below as CSV from your monthly Excel report, then upload them here. The dashboard will recompute all metrics automatically.</p>
-    <div class="upload-fields">
-      <div class="upload-field">
-        <label>1 · AuditEventData.csv</label>
-        <div class="field-desc">Required columns: Event Title, Location Data Group Name, Location Name, Assigned To, Completed Year-Month, Overall Score</div>
-        <div class="file-input-wrap" id="wrap-event">
-          <svg class="file-icon" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>
-          <input type="file" accept=".csv" id="fileEvent" onchange="onFileChosen(this,'wrap-event','name-event')">
-          <span class="file-name-badge" id="name-event"></span>
-        </div>
-      </div>
-      <div class="upload-field">
-        <label>2 · AuditEventQuestionData.csv</label>
-        <div class="field-desc">Required columns: Completed Year-Month, Location Data Group Name, Question Title (or Section-Question), Question Response, Question Is Answered Correctly</div>
-        <div class="file-input-wrap" id="wrap-question">
-          <svg class="file-icon" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>
-          <input type="file" accept=".csv" id="fileQuestion" onchange="onFileChosen(this,'wrap-question','name-question')">
-          <span class="file-name-badge" id="name-question"></span>
-        </div>
-      </div>
-      <div class="upload-field">
-        <label>3 · AuditTaskData.csv</label>
-        <div class="field-desc">Required columns: Task Title, Task Status, Created Date, Closed Date, Created Year-Month, Assigned To, Location Data Group Name, Location Name</div>
-        <div class="file-input-wrap" id="wrap-task">
-          <svg class="file-icon" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>
-          <input type="file" accept=".csv" id="fileTask" onchange="onFileChosen(this,'wrap-task','name-task')">
-          <span class="file-name-badge" id="name-task"></span>
-        </div>
-      </div>
-    </div>
-    <div class="upload-actions">
-      <button class="btn btn-cancel" onclick="hideUpload()">Cancel</button>
-      <button class="btn btn-load" id="btnLoad" disabled onclick="loadCSVs()">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-        Load Dashboard
-      </button>
-    </div>
-  </div>
+  <span id="statusText">Using built-in data (Jan–June 2026).</span>
 </div>
 
 <div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
@@ -850,18 +786,6 @@ function loadDemoData(){
   RAW.questions=null; USE_DEMO=true; processAndRender();
 }
 
-function parseCSVFile(file){return new Promise((res,rej)=>Papa.parse(file,{header:true,skipEmptyLines:true,complete:r=>res(r.data),error:e=>rej(e)}));}
-function onFileChosen(input,wrapId,nameId){if(!input.files[0])return;document.getElementById(wrapId).classList.add('has-file');document.getElementById(nameId).textContent=input.files[0].name;checkLoadReady();}
-function checkLoadReady(){document.getElementById('btnLoad').disabled=!(document.getElementById('fileEvent').files.length&&document.getElementById('fileQuestion').files.length&&document.getElementById('fileTask').files.length);}
-async function loadCSVs(){
-  hideUpload();setLoading(true);
-  try{
-    const[evRows,qRows,tRows]=await Promise.all([parseCSVFile(document.getElementById('fileEvent').files[0]),parseCSVFile(document.getElementById('fileQuestion').files[0]),parseCSVFile(document.getElementById('fileTask').files[0])]);
-    evRows.forEach(r=>{r['Overall Score']=parseFloat(r['Overall Score'])||0;});
-    qRows.forEach(r=>{r['Question Is Answered Correctly']=parseInt(r['Question Is Answered Correctly'])||0;});
-    RAW.events=evRows;RAW.questions=qRows;RAW.tasks=tRows;RAW._negQ=null;RAW._posQ=null;USE_DEMO=false;processAndRender();
-  }catch(e){alert('Error reading CSV files: '+e.message);setLoading(false);}
-}
 
 function compute(months,group){
   group=group||'all';
@@ -971,7 +895,7 @@ function lastDay(ym){const[y,m]=ym.split('-');return new Date(+y,+m,0).getDate()
 function processAndRender(){
   buildFilterBar();setLoading(false);
   const dot=document.getElementById('statusDot'),txt=document.getElementById('statusText');
-  if(USE_DEMO){dot.className='status-dot demo';txt.textContent='Using built-in data (Jan–May 2026). Click "Upload New Data" to load your CSV files.';}
+  if(USE_DEMO){dot.className='status-dot demo';txt.textContent='Using built-in data (Jan–May 2026).';}
   else{dot.className='status-dot';txt.textContent='Live data loaded · '+MONTHS.map(fmtYM).join(', ')+' · '+RAW.events.length+' audit events';}
   renderDashboard('ytd');
   applyDashSettings();
@@ -1060,11 +984,8 @@ function buildDonut(id,labels,values,colors,cutout=62){dc(id);CHARTS[id]=new Cha
 function buildBar(id,labels,datasets,opts={}){dc(id);CHARTS[id]=new Chart(document.getElementById(id).getContext('2d'),{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:opts.legend!==false,labels:{font:{family:'Barlow',size:11},padding:10}}},scales:{x:{stacked:!!opts.stacked,grid:{display:false},ticks:{font:{family:'Barlow',size:11}}},y:{stacked:!!opts.stacked,beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{family:'Barlow',size:11}},max:opts.yMax}}}});}
 function buildHBar(id,labels,values,color){dc(id);CHARTS[id]=new Chart(document.getElementById(id).getContext('2d'),{type:'bar',data:{labels,datasets:[{data:values,backgroundColor:color,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},sounds:{x:{beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{family:'Barlow',size:11}}},y:{grid:{display:false},ticks:{font:{family:'Barlow',size:11}}}},scales:{x:{beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{family:'Barlow',size:11}}},y:{grid:{display:false},ticks:{font:{family:'Barlow',size:11}}}}}});}
 function renderTop10(bodyId,sorted,isPos){const max=sorted[0]?.[1]||1;document.getElementById(bodyId).innerHTML=sorted.map(([q,c],i)=>{const label=q.replace(/\\t|\\n|\t|\n/g,'').trim();const barW=Math.max(4,Math.round(c/max*80));return '<tr><td><span class="rank-badge '+(i<3?'top3':'')+'">'+( i+1)+'</span></td><td>'+label+'</td><td><div class="count-bar"><div class="count-bar-fill'+(isPos?' pos':'')+'" style="width:'+barW+'px"></div><span class="count-val">'+c+'</span></div></td></tr>';}).join('');}
-function setLoading(on){document.getElementById('loadingState').classList.toggle('show',on);document.getElementById('dashContent').style.display=on?'none':'';if(on){document.getElementById('statusDot').className='status-dot loading';document.getElementById('statusText').textContent='Processing CSV data…';}}
-function showUpload(){document.getElementById('uploadOverlay').classList.add('show');}
-function hideUpload(){document.getElementById('uploadOverlay').classList.remove('show');}
+function setLoading(on){document.getElementById('loadingState').classList.toggle('show',on);document.getElementById('dashContent').style.display=on?'none':'';if(on){document.getElementById('statusDot').className='status-dot loading';document.getElementById('statusText').textContent='Loading data…';}}
 function printToPDF(){document.title='Balfour Beatty Audits Dashboard – '+document.getElementById('periodTitle').textContent;window.print();}
-document.getElementById('uploadOverlay').addEventListener('click',e=>{if(e.target.id==='uploadOverlay')hideUpload();});
 
 // ── Dashboard Customization ──────────────────────────────────
 const DEFAULT_SECTIONS=[
