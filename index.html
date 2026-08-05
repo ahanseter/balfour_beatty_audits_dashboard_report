@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audits Dashboard Report — Balfour Beatty Infrastructure, Inc.</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap');
+  :root{--bb-navy:#0A1E3C;--bb-blue:#1A4A8A;--bb-sky:#2E7BC4;--bb-accent:#F7A800;--bb-green:#2E7D4F;--bb-red:#B83232;--bb-light:#F0F4FA;--bb-border:#D0DCF0;--bb-text:#1A2640;--bb-muted:#5A6880;--shadow-sm:0 1px 4px rgba(10,30,60,.10);--shadow-md:0 4px 16px rgba(10,30,60,.14);--radius:8px;}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Barlow',sans-serif;background:var(--bb-light);color:var(--bb-text);font-size:14px;line-height:1.5;}
+  .topbar{background:var(--bb-navy);color:#fff;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:200;box-shadow:var(--shadow-md);}
+  .topbar-brand{display:flex;align-items:center;gap:16px;}
+  .topbar-logo{height:38px;display:flex;align-items:center;flex-shrink:0;}
+  .topbar-logo img{height:38px;width:auto;display:block;filter:brightness(0) invert(1);}
+  .topbar-divider{width:1px;height:32px;background:rgba(255,255,255,.2);flex-shrink:0;}
+  .topbar-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;letter-spacing:.3px;line-height:1.1;}
+  .topbar-sub{font-size:11px;color:rgba(255,255,255,.6);font-weight:400;letter-spacing:.5px;text-transform:uppercase;}
+  .topbar-actions{display:flex;align-items:center;gap:10px;}
+  .btn{display:flex;align-items:center;gap:7px;border:none;padding:9px 16px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:.3px;cursor:pointer;transition:background .15s,transform .1s;text-decoration:none;white-space:nowrap;}
+  .btn-pdf{background:var(--bb-accent);color:var(--bb-navy);}
+  .btn-pdf:hover{background:#ffc200;transform:translateY(-1px);}
+  .btn-upload{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);}
+  .btn-upload:hover{background:rgba(255,255,255,.25);}
+  .btn svg{width:16px;height:16px;flex-shrink:0;}
+  .filterbar{background:#fff;border-bottom:2px solid var(--bb-border);padding:0 32px;display:flex;align-items:center;gap:8px;height:52px;overflow-x:auto;position:sticky;top:64px;z-index:199;box-shadow:var(--shadow-md);}
+  .filter-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--bb-muted);white-space:nowrap;margin-right:4px;}
+  .filter-btn{border:1.5px solid var(--bb-border);background:#fff;color:var(--bb-muted);padding:5px 14px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+  .filter-btn:hover{border-color:var(--bb-sky);color:var(--bb-sky);}
+  .filter-btn.active{background:var(--bb-blue);border-color:var(--bb-blue);color:#fff;}
+  .filter-sep{width:1px;height:22px;background:var(--bb-border);margin:0 6px;flex-shrink:0;}
+  .group-select{border:1.5px solid var(--bb-border);background:#fff;color:var(--bb-text);padding:5px 28px 5px 10px;border-radius:6px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:500;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%235A6880'%3E%3Cpath d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;outline:none;transition:border-color .15s;}
+  .group-select:focus,.group-select:hover{border-color:var(--bb-sky);}
+  .upload-overlay{display:none;position:fixed;inset:0;background:rgba(10,30,60,.7);z-index:500;align-items:center;justify-content:center;}
+  .upload-overlay.show{display:flex;}
+  .upload-modal{background:#fff;border-radius:12px;padding:32px 36px;width:540px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+  .upload-modal h2{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:22px;color:var(--bb-navy);margin-bottom:6px;}
+  .upload-modal .modal-sub{font-size:13px;color:var(--bb-muted);margin-bottom:24px;}
+  .upload-fields{display:flex;flex-direction:column;gap:14px;margin-bottom:24px;}
+  .upload-field label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--bb-navy);margin-bottom:4px;}
+  .upload-field .field-desc{font-size:11px;color:#9AAABF;margin-bottom:6px;line-height:1.4;}
+  .file-input-wrap{display:flex;align-items:center;gap:10px;border:2px dashed var(--bb-border);border-radius:8px;padding:10px 14px;transition:border-color .15s;}
+  .file-input-wrap:focus-within,.file-input-wrap.has-file{border-color:var(--bb-sky);background:#f5f9ff;}
+  .file-input-wrap input[type=file]{flex:1;font-size:12px;color:var(--bb-text);background:none;border:none;outline:none;cursor:pointer;}
+  .file-icon{color:var(--bb-sky);flex-shrink:0;}
+  .file-name-badge{font-size:11px;font-weight:600;color:var(--bb-green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
+  .upload-actions{display:flex;justify-content:flex-end;gap:10px;}
+  .btn-cancel{background:var(--bb-light);color:var(--bb-muted);}
+  .btn-cancel:hover{background:#e0e8f4;}
+  .btn-load{background:var(--bb-blue);color:#fff;}
+  .btn-load:hover{background:var(--bb-sky);}
+  .btn-load:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+  .statusbar{background:#fff;border-bottom:1px solid var(--bb-border);padding:6px 32px;font-size:12px;color:var(--bb-muted);display:flex;align-items:center;gap:8px;min-height:34px;}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--bb-green);flex-shrink:0;}
+  .status-dot.demo{background:var(--bb-accent);}
+  .status-dot.loading{background:var(--bb-sky);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .main{max-width:1280px;margin:0 auto;padding:28px 32px 48px;}
+  .loading-state{display:none;text-align:center;padding:80px 32px;}
+  .loading-state.show{display:block;}
+  .loading-spinner{width:48px;height:48px;border:4px solid var(--bb-border);border-top-color:var(--bb-sky);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .period-header{display:flex;align-items:baseline;gap:16px;margin-bottom:22px;flex-wrap:wrap;}
+  .period-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:28px;color:var(--bb-navy);letter-spacing:-.3px;}
+  .period-range{font-size:13px;color:var(--bb-muted);font-weight:500;}
+  .period-locations{font-size:12px;color:var(--bb-sky);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-left:auto;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  .kpi-card{background:#fff;border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow-sm);border:1px solid var(--bb-border);position:relative;overflow:hidden;}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--bb-sky);}
+  .kpi-card.accent::before{background:var(--bb-accent);}
+  .kpi-card.green::before{background:var(--bb-green);}
+  .kpi-card.red::before{background:var(--bb-red);}
+  .kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--bb-muted);margin-bottom:6px;}
+  .kpi-value{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:42px;line-height:1;color:var(--bb-navy);letter-spacing:-1px;}
+  .kpi-sub{font-size:12px;color:var(--bb-muted);margin-top:4px;}
+  .section-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:var(--bb-navy);letter-spacing:.2px;padding-bottom:8px;border-bottom:2px solid var(--bb-border);margin-bottom:16px;text-transform:uppercase;}
+  .charts-row{display:grid;gap:20px;margin-bottom:24px;}
+  .charts-row.col-2{grid-template-columns:1fr 1fr;}
+  .charts-row.col-12{grid-template-columns:1fr 2fr;}
+  .chart-card{background:#fff;border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow-sm);border:1px solid var(--bb-border);}
+  .chart-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--bb-navy);margin-bottom:14px;}
+  .chart-wrap{position:relative;}
+  .top10-wrap{overflow-x:auto;}
+  .top10-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .top10-table th{background:var(--bb-navy);color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.5px;font-size:12px;padding:9px 12px;text-align:left;}
+  .top10-table td{padding:8px 12px;border-bottom:1px solid var(--bb-border);vertical-align:middle;}
+  .top10-table tr:hover td{background:var(--bb-light);}
+  .rank-badge{display:inline-flex;width:24px;height:24px;border-radius:50%;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;align-items:center;justify-content:center;background:var(--bb-navy);color:#fff;flex-shrink:0;}
+  .rank-badge.top3{background:var(--bb-accent);color:var(--bb-navy);}
+  .count-bar{display:flex;align-items:center;gap:8px;}
+  .count-bar-fill{height:8px;border-radius:4px;background:var(--bb-red);min-width:4px;}
+  .count-bar-fill.pos{background:var(--bb-green);}
+  .count-val{font-weight:600;color:var(--bb-navy);min-width:24px;text-align:right;}
+  .data-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .data-table th{background:var(--bb-navy);color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.5px;font-size:12px;padding:9px 12px;text-align:left;}
+  .data-table td{padding:7px 12px;border-bottom:1px solid var(--bb-border);}
+  .data-table tr:hover td{background:var(--bb-light);}
+  .score-pill{display:inline-block;padding:2px 9px;border-radius:12px;font-weight:600;font-size:12px;}
+  .score-100{background:#E6F4ED;color:#1a5c35;}
+  .score-high{background:#EFF7FF;color:#1a4a8a;}
+  .score-mid{background:#FFF8E6;color:#7a5000;}
+  .tasks-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+  .task-stat{background:#fff;border:1px solid var(--bb-border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);}
+  .task-stat-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--bb-muted);margin-bottom:4px;}
+  .task-stat-val{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:var(--bb-navy);}
+  .task-stat-sub{font-size:11px;color:var(--bb-muted);}
+  .page-divider{margin:32px 0 28px;border:none;border-top:2px dashed var(--bb-border);position:relative;}
+  .page-divider::after{content:attr(data-label);position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--bb-light);padding:0 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--bb-muted);white-space:nowrap;}
+  .footer{background:var(--bb-navy);color:rgba(255,255,255,.5);text-align:center;font-size:11px;padding:18px 32px;letter-spacing:.3px;}
+  .footer strong{color:rgba(255,255,255,.8);}
+  @media print{.topbar,.filterbar,.statusbar,.upload-overlay,.btn-pdf,.btn-upload{display:none!important;}.main{padding:12px 16px;}body{background:#fff;}.kpi-card,.chart-card{break-inside:avoid;box-shadow:none;}.page-divider{break-before:page;}.footer{display:none;}}
+.btn-settings{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);padding:9px 12px;}
+.btn-settings:hover{background:rgba(255,255,255,.25);}
+.settings-overlay{display:none;position:fixed;inset:0;background:rgba(10,30,60,.5);z-index:600;}
+.settings-overlay.show{display:block;}
+.settings-panel{position:fixed;top:0;right:-380px;width:360px;height:100vh;background:#fff;box-shadow:-4px 0 24px rgba(10,30,60,.22);display:flex;flex-direction:column;transition:right .25s ease;z-index:601;}
+.settings-overlay.show .settings-panel{right:0;}
+.settings-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:2px solid var(--bb-border);background:var(--bb-navy);color:#fff;flex-shrink:0;}
+.settings-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px;letter-spacing:.3px;}
+.settings-close{background:none;border:none;color:rgba(255,255,255,.7);font-size:22px;cursor:pointer;line-height:1;padding:0 4px;}
+.settings-close:hover{color:#fff;}
+.settings-desc{font-size:12px;color:var(--bb-muted);padding:14px 20px 6px;line-height:1.5;flex-shrink:0;}
+.settings-list{list-style:none;padding:4px 12px 12px;flex:1;overflow-y:auto;}
+.settings-item{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:8px;border:1.5px solid transparent;margin-bottom:4px;user-select:none;background:#fff;transition:background .1s;}
+.settings-item:hover{background:var(--bb-light);}
+.settings-item.drag-over{border-color:var(--bb-sky);background:#f0f7ff;}
+.settings-item.dragging{opacity:.45;}
+.drag-handle{color:var(--bb-muted);font-size:18px;cursor:grab;flex-shrink:0;line-height:1;}
+.drag-handle:active{cursor:grabbing;}
+.item-label{flex:1;font-size:13px;font-weight:500;color:var(--bb-text);}
+.toggle{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:22px;transition:.2s;}
+.toggle-slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+.toggle input:checked+.toggle-slider{background:var(--bb-green);}
+.toggle input:checked+.toggle-slider:before{transform:translateX(18px);}
+.settings-footer{padding:14px 20px;border-top:1px solid var(--bb-border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.settings-footer-hint{font-size:11px;color:var(--bb-muted);}
+.btn-reset{background:var(--bb-light);color:var(--bb-muted);font-size:13px;padding:7px 14px;}
+.btn-reset:hover{background:#e0e8f4;color:var(--bb-navy);}
+.dash-section{margin-bottom:0;}
+.dash-section.hidden{display:none!important;}
+@media print{.btn-settings,.settings-overlay{display:none!important;}}
+.access-gate{position:fixed;inset:0;z-index:1000;background:var(--bb-navy);display:flex;align-items:center;justify-content:center;transition:opacity .25s ease;}
+.access-gate.unlocked{opacity:0;pointer-events:none;}
+.access-modal{background:#fff;border-radius:12px;padding:40px 44px;width:380px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;}
+.access-logo img{height:34px;margin-bottom:18px;}
+.access-modal h2{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:22px;color:var(--bb-navy);margin-bottom:6px;}
+.access-sub{font-size:13px;color:var(--bb-muted);margin-bottom:20px;}
+.access-form{display:flex;flex-direction:column;gap:12px;}
+.access-input{border:1.5px solid var(--bb-border);border-radius:8px;padding:11px 14px;font-size:15px;font-family:'Barlow',sans-serif;text-align:center;letter-spacing:1px;outline:none;transition:border-color .15s;}
+.access-input:focus{border-color:var(--bb-sky);}
+.access-submit{justify-content:center;width:100%;padding:11px;font-size:15px;}
+.access-error{color:var(--bb-red);font-size:12px;margin-top:12px;font-weight:600;}
+body.gate-locked{overflow:hidden;}
+@media print{.access-gate{display:none!important;}}
+</style>
+</head>
+<body class="gate-locked">
+
+<div id="accessGate" class="access-gate">
+  <div class="access-modal">
+    <div class="access-logo"><img src="assets/balfour-logo.png" alt="Balfour Beatty"></div>
+    <h2>Audits Dashboard Report</h2>
+    <p class="access-sub">Enter your access code to continue.</p>
+    <form id="accessForm" class="access-form">
+      <input type="password" id="accessCodeInput" class="access-input" placeholder="Access code" autocomplete="off" autofocus>
+      <button type="submit" class="btn btn-load access-submit">Unlock</button>
+    </form>
+    <div id="accessError" class="access-error" style="display:none;">Incorrect access code. Please try again.</div>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">
+      <img src="assets/balfour-logo.png"
+           alt="Balfour Beatty"
+           onerror="this.outerHTML='<span style=\'font-family:Barlow Condensed,sans-serif;font-weight:800;font-size:20px;color:#F7A800;letter-spacing:-.5px;\'>BALFOUR BEATTY</span>'">
+    </div>
+    <div class="topbar-divider"></div>
+    <div>
+      <div class="topbar-title">Audits Dashboard Report</div>
+      <div class="topbar-sub">Balfour Beatty Infrastructure, Inc. · J. J. Keller Safety Management Suite</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-settings" onclick="openSettings()" title="Customize Dashboard">
+      <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+      Customize
+    </button>
+    <button class="btn btn-upload" onclick="showUpload()">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 01.707.293l4 4a1 1 0 01-1.414 1.414L11 6.414V13a1 1 0 11-2 0V6.414L6.707 8.707A1 1 0 015.293 7.293l4-4A1 1 0 0110 3zM4 15a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"/></svg>
+      Upload New Data
+    </button>
+    <button class="btn btn-pdf" onclick="printToPDF()">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/></svg>
+      Print to PDF
+    </button>
+  </div>
+</header>
+
+<nav class="filterbar" id="filterBar"><div class="filter-sep"></div><span class="filter-label" style="margin-right:6px;">Location Group:</span><select class="group-select" id="groupSelect" onchange="onGroupChange()"><option value="all">All Locations</option></select></nav>
+
+<div class="statusbar" id="statusBar">
+  <div class="status-dot demo" id="statusDot"></div>
+  <span id="statusText">Using built-in data (Jan–June 2026). Click "Upload New Data" to load your CSV files.</span>
+</div>
+
+<div class="upload-overlay" id="uploadOverlay">
+  <div class="upload-modal">
+    <h2>Upload Monthly CSV Files</h2>
+    <p class="modal-sub">Export the three sheets listed below as CSV from your monthly Excel report, then upload them here. The dashboard will recompute all metrics automatically.</p>
+    <div class="upload-fields">
+      <div class="upload-field">
+        <label>1 · AuditEventData.csv</label>
+        <div class="field-desc">Required columns: Event Title, Location Data Group Name, Location Name, Assigned To, Completed Year-Month, Overall Score</div>
+        <div class="file-input-wrap" id="wrap-event">
+          <svg class="file-icon" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>
+          <input type="file" accept=".csv" id="fileEvent" onchange="onFileChosen(this,'wrap-event','name-event')">
+          <span class="file-name-badge" id="name-event"></span>
+        </div>
+      </div>
+      <div class="upload-field">
+        <label>2 · AuditEventQuestionData.csv</label>
+        <div class="field-desc">Required columns: Completed Year-Month, Location Data Group Name, Question Title (or Section-Question), Question Response, Question Is Answered Correctly</div>
+        <div class="file-input-wrap" id="wrap-question">
+          <svg class="file-icon" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>
+          <input type="file" accept=".csv" id="fileQuestion" onchange="onFileChosen(this,'wrap-question','name-question')">
+          <span class="file-name-badge" id="name-question"></span>
+        </div>
+      </div>
+      <div class="upload-field">
+        <label>3 · AuditTaskData.csv</label>
+        <div class="field-desc">Required columns: Task Title, Task Status, Created Date, Closed Date, Created Year-Month, Assigned To, Location Data Group Name, Location Name</div>
+        <div class="file-input-wrap" id="wrap-task">
+          <svg class="file-icon" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>
+          <input type="file" accept=".csv" id="fileTask" onchange="onFileChosen(this,'wrap-task','name-task')">
+          <span class="file-name-badge" id="name-task"></span>
+        </div>
+      </div>
+    </div>
+    <div class="upload-actions">
+      <button class="btn btn-cancel" onclick="hideUpload()">Cancel</button>
+      <button class="btn btn-load" id="btnLoad" disabled onclick="loadCSVs()">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        Load Dashboard
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-panel">
+    <div class="settings-header">
+      <span class="settings-title">&#9881; Customize Dashboard</span>
+      <button class="settings-close" onclick="closeSettings()">&#x2715;</button>
+    </div>
+    <p class="settings-desc">Drag cards to reorder. Toggle to show or hide sections.</p>
+    <ul class="settings-list" id="settingsList"></ul>
+    <div class="settings-footer">
+      <span class="settings-footer-hint">Changes save automatically</span>
+      <button class="btn btn-reset" onclick="resetSettings()">Reset to Default</button>
+    </div>
+  </div>
+</div>
+
+<main class="main">
+  <div class="loading-state" id="loadingState">
+    <div class="loading-spinner"></div>
+    <p style="color:var(--bb-muted);font-size:14px;margin-top:8px;">Processing CSV data…</p>
+  </div>
+  <div id="dashContent">
+    <div class="period-header">
+      <div class="period-title" id="periodTitle"></div>
+      <div class="period-range" id="periodRange"></div>
+      <div class="period-locations" id="periodLocations">All Locations</div>
+    </div>
+    <div class="dash-section" id="ds-kpi">
+    <div class="kpi-grid">
+      <div class="kpi-card accent"><div class="kpi-label">Total Audit Events</div><div class="kpi-value" id="kpi-events">—</div><div class="kpi-sub">Completed scheduled events</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Positive Responses</div><div class="kpi-value" id="kpi-pos">—</div><div class="kpi-sub" id="kpi-pos-pct"></div></div>
+      <div class="kpi-card red"><div class="kpi-label">Negative Responses</div><div class="kpi-value" id="kpi-neg">—</div><div class="kpi-sub" id="kpi-neg-pct"></div></div>
+      <div class="kpi-card"><div class="kpi-label">Total Responses</div><div class="kpi-value" id="kpi-total">—</div><div class="kpi-sub">Across all audits</div></div>
+    </div>
+    </div>
+    <div class="dash-section" id="ds-trend">
+    <div class="charts-row" style="grid-template-columns:1fr;margin-bottom:24px;">
+      <div class="chart-card">
+        <div class="chart-title">Audit Events &amp; Conformance Score by Month</div>
+        <div class="chart-wrap" style="height:280px;"><canvas id="auditsTrendChart"></canvas></div>
+      </div>
+    </div>
+    </div>
+    <div class="dash-section" id="ds-responses">
+    <div class="charts-row col-12">
+      <div class="chart-card"><div class="chart-title">Question Responses</div><div class="chart-wrap" style="height:240px;display:flex;align-items:center;justify-content:center;"><canvas id="donutChart"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Total Responses by Month</div><div class="chart-wrap" style="height:240px;"><canvas id="responsesByMonthChart"></canvas></div></div>
+    </div>
+    </div>
+    <div class="dash-section" id="ds-bygroup">
+    <div class="charts-row col-2">
+      <div class="chart-card"><div class="chart-title">Positive Responses by Location Group</div><div class="chart-wrap" style="height:200px;"><canvas id="posGroupChart"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Negative Responses by Location Group</div><div class="chart-wrap" style="height:200px;"><canvas id="negGroupChart"></canvas></div></div>
+    </div>
+    </div>
+    <div class="dash-section" id="ds-top10">
+    <hr class="page-divider" data-label="Page 2 · Top Observations">
+    <div class="charts-row col-2">
+      <div class="chart-card"><div class="section-title">Top 10 Negative Observations</div><div style="font-size:11px;color:var(--bb-muted);margin:4px 0 12px;font-style:italic;">Top 10 most frequent — <span id="negCoverage"></span> of total negative responses</div><div class="top10-wrap"><table class="top10-table"><thead><tr><th style="width:38px;">#</th><th>Question</th><th style="width:110px;">Count</th></tr></thead><tbody id="negTableBody"></tbody></table></div></div>
+      <div class="chart-card"><div class="section-title">Top 10 Positive Observations</div><div style="font-size:11px;color:var(--bb-muted);margin:4px 0 12px;font-style:italic;">Top 10 most frequent — <span id="posCoverage"></span> of total positive responses</div><div class="top10-wrap"><table class="top10-table"><thead><tr><th style="width:38px;">#</th><th>Question</th><th style="width:110px;">Count</th></tr></thead><tbody id="posTableBody"></tbody></table></div></div>
+    </div>
+    </div>
+    <div class="dash-section" id="ds-bylocation">
+    <hr class="page-divider" data-label="Page 3 · Audits by Location &amp; Assignee">
+    <div class="charts-row" style="grid-template-columns:1fr;">
+      <div class="chart-card">
+        <div class="section-title">Audits by Location Group</div>
+        <div class="chart-wrap" style="height:200px;margin-bottom:20px;"><canvas id="locationGroupChart"></canvas></div>
+        <div class="top10-wrap"><table class="data-table"><thead><tr><th>Location Group</th><th style="width:80px;text-align:right;">Audits</th></tr></thead><tbody id="locGroupTableBody"></tbody></table></div>
+      </div>
+    </div>
+    </div>
+    <div class="dash-section" id="ds-siteassignee">
+    <div class="charts-row col-2">
+      <div class="chart-card">
+        <div class="section-title">Audits by Site Location</div>
+        <div class="chart-wrap" style="height:320px;margin-bottom:20px;"><canvas id="locSiteChart"></canvas></div>
+        <div class="top10-wrap"><table class="data-table"><thead><tr><th>Location</th><th style="width:80px;text-align:right;">Audits</th></tr></thead><tbody id="locTableBody"></tbody></table></div>
+      </div>
+      <div class="chart-card">
+        <div class="section-title">Audits by Assignee</div>
+        <div class="chart-wrap" style="height:320px;margin-bottom:20px;"><canvas id="assigneeChart"></canvas></div>
+        <div class="top10-wrap"><table class="data-table"><thead><tr><th>Assigned To</th><th style="width:80px;text-align:right;">Audits</th></tr></thead><tbody id="assigneeTableBody"></tbody></table></div>
+      </div>
+    </div>
+    </div>
+    <div class="dash-section" id="ds-taskstats">
+    <hr class="page-divider" data-label="Page 4 · Audit Tasks">
+    <div class="tasks-grid">
+      <div class="task-stat"><div class="task-stat-label">To Do Tasks</div><div class="task-stat-val" id="task-todo">—</div><div class="task-stat-sub" id="task-todo-sub"></div></div>
+      <div class="task-stat"><div class="task-stat-label">In Progress Tasks</div><div class="task-stat-val" id="task-inprog">—</div><div class="task-stat-sub">Currently active</div></div>
+      <div class="task-stat"><div class="task-stat-label">Completed Tasks</div><div class="task-stat-val" id="task-done">—</div><div class="task-stat-sub" id="task-done-pct"></div></div>
+      <div class="task-stat"><div class="task-stat-label">Avg Days to Complete</div><div class="task-stat-val" id="task-days">—</div><div class="task-stat-sub" id="task-open-days"></div></div>
+    </div>
+    </div>
+    <div class="dash-section" id="ds-taskcharts">
+    <div class="charts-row col-2">
+      <div class="chart-card"><div class="section-title">Task Completion Status</div><div class="chart-wrap" style="height:240px;display:flex;align-items:center;justify-content:center;"><canvas id="taskDonutChart"></canvas></div></div>
+      <div class="chart-card"><div class="section-title">Tasks by Month</div><div class="chart-wrap" style="height:240px;"><canvas id="tasksByMonthChart"></canvas></div></div>
+    </div>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <strong>Balfour Beatty Infrastructure, Inc.</strong> · Audits Dashboard Report ·
+  Generated via <strong>J. J. Keller Safety Management Suite</strong> · All Locations · Jan–June 2026
+</footer>
+
+<script>
+const RAW={events:null,questions:null,tasks:null,_negQ:null,_posQ:null};
+let MONTHS=[],CURRENT_FILTER='ytd',CURRENT_GROUP='all';
+const CHARTS={};
+let USE_DEMO=true;
+const C={navy:'#0A1E3C',blue:'#1A4A8A',sky:'#2E7BC4',accent:'#F7A800',green:'#2E7D4F',red:'#B83232'};
+
+function loadDemoData(){
+  const ev=(ym,grp,loc,who,score)=>({'Completed Year-Month':ym,'Location Data Group Name':grp,'Location Name':loc,'Assigned To':who,'Overall Score':score});
+  RAW.events=[
+    // ── January 2026 (28 events) ──
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','Richie Eakes',100),
+    ev('2026-1','SE HIGHWAYS','20001023 - JAMES CITY - D/B','SETH WEEKS',98),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','Keith Casper',92),
+    ev('2026-1','SE HIGHWAYS','20001021 - HAVELOCK BYPASS','DENNIS CARROWAY',100),
+    ev('2026-1','SE HIGHWAYS','20001021 - HAVELOCK BYPASS','DENNIS CARROWAY',100),
+    ev('2026-1','SE HIGHWAYS','20001021 - HAVELOCK BYPASS','DENNIS CARROWAY',100),
+    ev('2026-1','SE HIGHWAYS','20001029 - CONNELLY SPRINGS RD BRIDGE REP','WILLIAM CHILCOTT',100),
+    ev('2026-1','SE HIGHWAYS','20001023 - JAMES CITY - D/B','TAYLOR CHRISTIAN',98),
+    ev('2026-1','SE HIGHWAYS','20001021 - HAVELOCK BYPASS','JACOB WILCOX',80),
+    ev('2026-1','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-1','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','ERNESTO JAIMES-AGUILAR',100),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','Keith Casper',100),
+    ev('2026-1','SE HIGHWAYS','20001023 - JAMES CITY - D/B','Tony Mitchell',93),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','TONY TROLLOPE',100),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-1','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','MARK PARKHURST',100),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-1','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-1','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','MORGAN BROWN',100),
+    ev('2026-1','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',100),
+    ev('2026-1','SE HIGHWAYS','20001023 - JAMES CITY - D/B','Bryan Yokote',96),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','MARK PARKHURST',100),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','William Eubanks',100),
+    ev('2026-1','SE HIGHWAYS','20001026 - THURMAN','TONY TROLLOPE',100),
+    ev('2026-1','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    // ── February 2026 (53 events) ──
+    ev('2026-2','SE HIGHWAYS','20001021 - HAVELOCK BYPASS','JIMMIE SAWYER JR',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','MARK JOHNNIE',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','TONY TROLLOPE',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-2','SE HIGHWAYS','20001023 - JAMES CITY - D/B','SETH WEEKS',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','WILLIAM JANNING III',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',92),
+    ev('2026-2','SW HIGHWAYS','30001183 - LBJ EAST JV INT','Eric Yates',95),
+    ev('2026-2','SW HIGHWAYS','30001083 - IH30 THE CANYON','Eric Yates',100),
+    ev('2026-2','SW HIGHWAYS','30001184 - OAK HILL PARKWAY JV INT','Eric Yates',96),
+    ev('2026-2','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',100),
+    ev('2026-2','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',100),
+    ev('2026-2','SE HIGHWAYS','20001021 - HAVELOCK BYPASS','Josh Sommer',100),
+    ev('2026-2','SE HIGHWAYS','200400 - SE - EQUIPMENT','Timothy Smith',99),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',96),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','eyates@balfourbeattyus.com',99),
+    ev('2026-2','SE HIGHWAYS','20001023 - JAMES CITY - D/B','SETH WEEKS',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-2','SE HIGHWAYS','2000 - BBCIVIL, SE HIGHWAY DIVISION','MARK JOHNNIE',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','Zackary Harrell',92),
+    ev('2026-2','SE HIGHWAYS','2000 - BBCIVIL, SE HIGHWAY DIVISION','Bryan Yokote',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-2','SE HIGHWAYS','200160 - HEALTH AND SAFETY','MORGAN BROWN',98),
+    ev('2026-2','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Timothy Smith',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-2','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','TONY TROLLOPE',100),
+    ev('2026-2','SE HIGHWAYS','20001023 - JAMES CITY - D/B','TAYLOR CHRISTIAN',100),
+    ev('2026-2','SE HIGHWAYS','20001023 - JAMES CITY - D/B','TAYLOR CHRISTIAN',100),
+    ev('2026-2','SE HIGHWAYS','20001023 - JAMES CITY - D/B','TAYLOR CHRISTIAN',100),
+    ev('2026-2','SE HIGHWAYS','20001023 - JAMES CITY - D/B','TAYLOR CHRISTIAN',100),
+    ev('2026-2','SE HIGHWAYS','20001023 - JAMES CITY - D/B','TAYLOR CHRISTIAN',100),
+    ev('2026-2','SE HIGHWAYS','20001023 - JAMES CITY - D/B','TAYLOR CHRISTIAN',100),
+    ev('2026-2','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','LACY BROUGHMAN',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','MORGAN BROWN',96),
+    ev('2026-2','SE HIGHWAYS','20001023 - JAMES CITY - D/B','ALEX RAMOS',98),
+    ev('2026-2','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-2','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-2','SE HIGHWAYS','20001023 - JAMES CITY - D/B','MORGAN BROWN',97),
+    // ── March 2026 (51 events) ──
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-3','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',100),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-3','SE HIGHWAYS','20001021 - HAVELOCK BYPASS','JACOB WILCOX',80),
+    ev('2026-3','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',96),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','PETER DISTEFANO',100),
+    ev('2026-3','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','PETER DISTEFANO',100),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','WILLIAM JANNING III',100),
+    ev('2026-3','SE HIGHWAYS','20001023 - JAMES CITY - D/B','Tony Mitchell',93),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','TONY TROLLOPE',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-3','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','CHRISTOPHER Mcdonald',100),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','JAMES REARDON',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-3','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','LACY BROUGHMAN',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','MARK PARKHURST',100),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-3','SE HIGHWAYS','20001023 - JAMES CITY - D/B','SETH WEEKS',95),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','MARK PREUSSE',96),
+    ev('2026-3','SW HIGHWAYS','30001083 - IH30 THE CANYON','Mark Johnnie',100),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Mark Johnnie',100),
+    ev('2026-3','WATER','40001019 - NORTHEAST PURIFICATION PLANT E','Mark Johnnie',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-3','SW HIGHWAYS','30001184 - OAK HILL PARKWAY JV INT','Mark Johnnie',100),
+    ev('2026-3','SE HIGHWAYS','20001021 - HAVELOCK BYPASS','Mark Johnnie',100),
+    ev('2026-3','SE HIGHWAYS','20001023 - JAMES CITY - D/B','Mark Johnnie',100),
+    ev('2026-3','SE HIGHWAYS','20001023 - JAMES CITY - D/B','CLAYTON BJERKESET',92),
+    ev('2026-3','SE HIGHWAYS','2000 - BBCIVIL, SE HIGHWAY DIVISION','Bryan Yokote',100),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Julie Luna',100),
+    ev('2026-3','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-3','SW HIGHWAYS','30001184 - OAK HILL PARKWAY JV INT','MARK PREUSSE',96),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-3','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',96),
+    ev('2026-3','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DEVANSH VARU',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','William Eubanks',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','JAMES REARDON',100),
+    ev('2026-3','SE HIGHWAYS','20001023 - JAMES CITY - D/B','Timothy Smith',99),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','TIMOTHY SMITH',100),
+    ev('2026-3','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','LACY BROUGHMAN',100),
+    ev('2026-3','SE HIGHWAYS','20001026 - THURMAN','WILLIAM JANNING III',100),
+    // ── April 2026 (36 events) ──
+    ev('2026-4','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-4','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-4','SE HIGHWAYS','20001026 - THURMAN','Keith Casper',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-4','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Ernesto Jaimes-Aguilar',84),
+    ev('2026-4','SE HIGHWAYS','20001026 - THURMAN','MARK PARKHURST',96),
+    ev('2026-4','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',96),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DIOGO LIBORIO',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-4','SE HIGHWAYS','20001026 - THURMAN','Zackary Harrell',92),
+    ev('2026-4','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-4','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-4','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',96),
+    ev('2026-4','SE HIGHWAYS','20001026 - THURMAN','MARK PARKHURST',100),
+    ev('2026-4','SE HIGHWAYS','2000 - BBCIVIL, SE HIGHWAY DIVISION','Bryan Yokote',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DIOGO LIBORIO',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Julie Luna',96),
+    ev('2026-4','SE HIGHWAYS','20001023 - JAMES CITY - D/B','SETH WEEKS',100),
+    ev('2026-4','SE HIGHWAYS','20001023 - JAMES CITY - D/B','Tony Mitchell',98),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DIOGO LIBORIO',100),
+    ev('2026-4','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Charmaine Lim-Blanshteyn',100),
+    ev('2026-4','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','LACY BROUGHMAN',96),
+    ev('2026-4','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','LACY BROUGHMAN',92),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','ZACHARY DUANE',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-4','SE HIGHWAYS','20001023 - JAMES CITY - D/B','SETH WEEKS',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Ramon Galvan Rodriguez',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Gerardo Garcia Ortiz',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Daniel Bazan',100),
+    ev('2026-4','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-4','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    // ── May 2026 (39 events) ──
+    ev('2026-5','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','aramos@balfourbeattyus.com',97),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','WILLIAM JANNING III',100),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','Keith Casper',100),
+    ev('2026-5','SE HIGHWAYS','20001023 - JAMES CITY - D/B','SETH WEEKS',98),
+    ev('2026-5','SE HIGHWAYS','200400 - SE - EQUIPMENT','Timothy Smith',100),
+    ev('2026-5','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Timothy Smith',100),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DIOGO LIBORIO',100),
+    ev('2026-5','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',96),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-5','Shared','40001022 - PROJECT PETAL','eyates@balfourbeattyus.com',100),
+    ev('2026-5','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','LACY BROUGHMAN',96),
+    ev('2026-5','Shared','40001021 - 32ND STREET BOOSTER PUMP STATI','eyates@balfourbeattyus.com',100),
+    ev('2026-5','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','LACY BROUGHMAN',92),
+    ev('2026-5','WATER','40001007 - STERLING NATURAL RESOURCE CTR','eyates@balfourbeattyus.com',98),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','Zackary Harrell',96),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DIOGO LIBORIO',100),
+    ev('2026-5','RAIL','5000 - BBCIVIL, RAIL','eyates@balfourbeattyus.com',98),
+    ev('2026-5','SE HIGHWAYS','20001023 - JAMES CITY - D/B','Tony Mitchell',93),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-5','SW HIGHWAYS','30001083 - IH30 THE CANYON','THOMAS TRAN',100),
+    ev('2026-5','SE HIGHWAYS','20001024 - EFFINGHAM PARKWAY','Jason Sokolowski',100),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Ernesto Jaimes-Aguilar',96),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Ernesto Jaimes-Aguilar',96),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DIOGO LIBORIO',100),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','Keith Casper',100),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','JAMES REARDON',96),
+    ev('2026-5','SE HIGHWAYS','20001021 - HAVELOCK BYPASS','JACOB WILCOX',84),
+    ev('2026-5','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-5','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Ernesto Jaimes-Aguilar',88),
+    ev('2026-5','SW HIGHWAYS','30001083 - IH30 THE CANYON','THOMAS TRAN',100),
+    // ── June 2026 (32 events) ──
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-6','SE HIGHWAYS','2000 - BBCIVIL, SE HIGHWAY DIVISION','Bryan Yokote',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','William Eubanks',100),
+    ev('2026-6','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','LACY BROUGHMAN',92),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','WILLIAM JANNING III',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','MARK PARKHURST',100),
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Edward Dominguez',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Diogo Liborio',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','MARK PARKHURST',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','David Phelps',100),
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','JULIE LUNA',96),
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-6','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','LACY BROUGHMAN',100),
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','DIOGO LIBORIO',100),
+    ev('2026-6','SW HIGHWAYS','30001083 - IH30 THE CANYON','THOMAS TRAN',96),
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Chris Grahmann',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+    ev('2026-6','SE HIGHWAYS','2000 - BBCIVIL, SE HIGHWAY DIVISION','Bryan Yokote',100),
+    ev('2026-6','SE HIGHWAYS','20001023 - JAMES CITY - D/B','TONY MITCHELL',100),
+    ev('2026-6','SE HIGHWAYS','20001027 - I 87 11 INTERCHANGE','LACY BROUGHMAN',100),
+    ev('2026-6','SW HIGHWAYS','30001082 - IH35 @ LADY BIRD LAKE','Ernesto Jaimes-Aguilar',88),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','MICHAEL MATTHEWS',100),
+    ev('2026-6','SE HIGHWAYS','20001026 - THURMAN','Michael Immediato',100),
+  ];
+  // Top-10 negative observations keyed by group and period
+  // Full set of distinct negative observations per group (not capped at 10) so the
+  // top-10 sort/slice below always reflects the TRUE top 10 for whichever period is
+  // selected, not just the YTD leaders — a fixed top-10-by-YTD list can under-report
+  // a month whose worst items differ from the year's overall worst items.
+  RAW._negQ={
+    all:[
+      {q:'Inspection-Personal Protective Equipment acceptable?',ytd:11,jan:2,feb:2,mar:0,apr:3,may:3,jun:1},
+      {q:'Inspection-Fire Protection acceptable?',ytd:9,jan:1,feb:0,mar:2,apr:2,may:2,jun:2},
+      {q:'Inspection-Housekeeping acceptable?',ytd:5,jan:2,feb:0,mar:0,apr:1,may:2,jun:0},
+      {q:'Inspection-Fall Protection/Guardrails acceptable?',ytd:4,jan:0,feb:0,mar:0,apr:0,may:2,jun:2},
+      {q:'Inspection-Access to work area acceptable?',ytd:4,jan:0,feb:0,mar:2,apr:1,may:1,jun:0},
+      {q:"Inspection-Labels & SDS's (Safety Data Sheets) acceptable?",ytd:4,jan:0,feb:0,mar:1,apr:1,may:2,jun:0},
+      {q:'Electrical-All items addressed in this section?',ytd:4,jan:0,feb:2,mar:1,apr:0,may:1,jun:0},
+      {q:'Inspection-Clearing and Grubbing acceptable?',ytd:3,jan:0,feb:1,mar:0,apr:1,may:1,jun:0},
+      {q:'Personal Protective Equipment-Proper PPE being worn as required?',ytd:3,jan:0,feb:3,mar:0,apr:0,may:0,jun:0},
+      {q:'Inspection-Traffic Control acceptable?',ytd:3,jan:1,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Recordkeeping-Safety checklist completed at proper frequencies?',ytd:3,jan:0,feb:3,mar:0,apr:0,may:0,jun:0},
+      {q:'Message Boards-Are all of them working properly?',ytd:3,jan:1,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Construction Barricades-Are they all standing up?',ytd:3,jan:1,feb:0,mar:0,apr:1,may:1,jun:0},
+      {q:'Inspection-Vehicles & Mobile Equipment acceptable?',ytd:3,jan:0,feb:1,mar:0,apr:1,may:1,jun:0},
+      {q:'Inspection-Scaffolds & Ladders acceptable?',ytd:3,jan:0,feb:1,mar:0,apr:1,may:0,jun:1},
+      {q:'Construction Barrels-Positioned properly?',ytd:3,jan:1,feb:0,mar:2,apr:0,may:0,jun:0},
+      {q:'Fire-Fire extinguishers charged and inspected?',ytd:2,jan:0,feb:2,mar:0,apr:0,may:0,jun:0},
+      {q:'Electrical-Extension cords free of cuts, splices and bare wire?',ytd:2,jan:0,feb:2,mar:0,apr:0,may:0,jun:0},
+      {q:'Housekeeping-Are ends of rebar protected to prevent impalement?',ytd:2,jan:0,feb:1,mar:1,apr:0,may:0,jun:0},
+      {q:'Inspection-Storm Water Protection acceptable?',ytd:2,jan:1,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Electrical-Power tools and extension cords inspected and tagged with current color coding?',ytd:2,jan:0,feb:2,mar:0,apr:0,may:0,jun:0},
+      {q:"Working at Heights/Fall Protection-Leading edges 6'+ above lower level were observed properly protected or personnel using PFAS when exposed?",ytd:2,jan:0,feb:2,mar:0,apr:0,may:0,jun:0},
+      {q:'Inspection-Cranes & Rigging acceptable?',ytd:2,jan:0,feb:0,mar:1,apr:0,may:0,jun:1},
+      {q:'Inspection-Trenches & Excavations acceptable?',ytd:2,jan:1,feb:0,mar:0,apr:1,may:0,jun:0},
+      {q:'Working at Heights/Fall Protection-Are guardrails properly installed and maintained?',ytd:2,jan:0,feb:1,mar:1,apr:0,may:0,jun:0},
+      {q:'Working at Heights/Fall Protection-Overhead hazards properly identified?',ytd:2,jan:0,feb:1,mar:1,apr:0,may:0,jun:0},
+      {q:'Detours-Are all access/egress points clearly marked?',ytd:2,jan:1,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Equipment & Tools-Are guards in place on machinery and equipment per manufacturer requirements?',ytd:2,jan:0,feb:0,mar:2,apr:0,may:0,jun:0},
+      {q:'Detours-Is all striping clear and visible?',ytd:2,jan:1,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Housekeeping-General appearance of work site neat and orderly?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Compressed Gases-Compressed gas cylinders (oxygen and acetylene) secured in upright position? If in use, are the cylinders in a proper torch cart?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Working at Heights/Fall Protection-Employees utilizing safe practices when using ladders (e.g. not standing on top two steps, 3-point contact)?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Working at Heights/Fall Protection-Guardrail system and toe boards in use?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Struck By-Adequate machine/human interface safeguards were observed?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Recordkeeping-Emergency action plan available and up-to-date?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Confined Space / Trenching/Excavation-All items addressed in this section?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Working at Heights/Fall Protection-Scaffolds are engineered and being used as designed',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Inspection-Spill Prevention acceptable?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Compressed Gases-Oxygen & Acetylene bottles properly stored and separated (i.e. fire wall or 20 feet)?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Detours-Are all barricades and signs in place?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Inspection-Electrical acceptable?',ytd:1,jan:0,feb:0,mar:0,apr:1,may:0,jun:0},
+      {q:'Fire-Approved safety cans used for gasoline and fuel storage?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'First Aid/AEDs-AEDs inspected and equipment not expired?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Working at Heights/Fall Protection-Is personal fall protection being used properly?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Segregation and Container Labeling-All items addressed in this section?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Construction Barrels-In good condition?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Housekeeping-Trash containers adequate and available?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Segregation and Container Labeling-Are chemical and non-potable water containers in good condition, labeled and compatible with contents? (i.e., form oils, gasoline, diesel, caustics, oxidizers, etc.)',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Working at Heights/Fall Protection-Are scaffolds properly tagged and inspected?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+    ],
+    'SE HIGHWAYS':[
+      {q:'Inspection-Fire Protection acceptable?',ytd:8,jan:1,feb:0,mar:2,apr:2,may:2,jun:1},
+      {q:'Inspection-Access to work area acceptable?',ytd:4,jan:0,feb:0,mar:2,apr:1,may:1,jun:0},
+      {q:'Inspection-Personal Protective Equipment acceptable?',ytd:4,jan:2,feb:1,mar:0,apr:1,may:0,jun:0},
+      {q:'Inspection-Housekeeping acceptable?',ytd:4,jan:2,feb:0,mar:0,apr:0,may:2,jun:0},
+      {q:"Inspection-Labels & SDS's (Safety Data Sheets) acceptable?",ytd:3,jan:0,feb:0,mar:1,apr:0,may:2,jun:0},
+      {q:'Message Boards-Are all of them working properly?',ytd:3,jan:1,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Inspection-Traffic Control acceptable?',ytd:3,jan:1,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Recordkeeping-Safety checklist completed at proper frequencies?',ytd:3,jan:0,feb:3,mar:0,apr:0,may:0,jun:0},
+      {q:'Construction Barrels-Positioned properly?',ytd:3,jan:1,feb:0,mar:2,apr:0,may:0,jun:0},
+      {q:'Personal Protective Equipment-Proper PPE being worn as required?',ytd:3,jan:0,feb:3,mar:0,apr:0,may:0,jun:0},
+      {q:'Construction Barricades-Are they all standing up?',ytd:3,jan:1,feb:0,mar:0,apr:1,may:1,jun:0},
+      {q:'Inspection-Clearing and Grubbing acceptable?',ytd:3,jan:0,feb:1,mar:0,apr:1,may:1,jun:0},
+      {q:'Inspection-Fall Protection/Guardrails acceptable?',ytd:2,jan:0,feb:0,mar:0,apr:0,may:1,jun:1},
+      {q:'Fire-Fire extinguishers charged and inspected?',ytd:2,jan:0,feb:2,mar:0,apr:0,may:0,jun:0},
+      {q:'Inspection-Storm Water Protection acceptable?',ytd:2,jan:1,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Detours-Is all striping clear and visible?',ytd:2,jan:1,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Detours-Are all access/egress points clearly marked?',ytd:2,jan:1,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Electrical-All items addressed in this section?',ytd:2,jan:0,feb:2,mar:0,apr:0,may:0,jun:0},
+      {q:"Working at Heights/Fall Protection-Leading edges 6'+ above lower level were observed properly protected or personnel using PFAS when exposed?",ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Compressed Gases-Compressed gas cylinders (oxygen and acetylene) secured in upright position? If in use, are the cylinders in a proper torch cart?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Working at Heights/Fall Protection-Employees utilizing safe practices when using ladders (e.g. not standing on top two steps, 3-point contact)?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Electrical-Power tools and extension cords inspected and tagged with current color coding?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Recordkeeping-Emergency action plan available and up-to-date?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Construction Barrels-In good condition?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Inspection-Scaffolds & Ladders acceptable?',ytd:1,jan:0,feb:0,mar:0,apr:1,may:0,jun:0},
+      {q:'Inspection-Cranes & Rigging acceptable?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Detours-Are all barricades and signs in place?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'First Aid/AEDs-AEDs inspected and equipment not expired?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Inspection-Electrical acceptable?',ytd:1,jan:0,feb:0,mar:0,apr:1,may:0,jun:0},
+      {q:'Compressed Gases-Oxygen & Acetylene bottles properly stored and separated (i.e. fire wall or 20 feet)?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Inspection-Vehicles & Mobile Equipment acceptable?',ytd:1,jan:0,feb:0,mar:0,apr:1,may:0,jun:0},
+      {q:'Inspection-Spill Prevention acceptable?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Housekeeping-Trash containers adequate and available?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Inspection-Trenches & Excavations acceptable?',ytd:1,jan:1,feb:0,mar:0,apr:0,may:0,jun:0},
+    ],
+    'SW HIGHWAYS':[
+      {q:'Inspection-Personal Protective Equipment acceptable?',ytd:7,jan:0,feb:1,mar:0,apr:2,may:3,jun:1},
+      {q:'Inspection-Fall Protection/Guardrails acceptable?',ytd:2,jan:0,feb:0,mar:0,apr:0,may:1,jun:1},
+      {q:'Equipment & Tools-Are guards in place on machinery and equipment per manufacturer requirements?',ytd:2,jan:0,feb:0,mar:2,apr:0,may:0,jun:0},
+      {q:'Housekeeping-Are ends of rebar protected to prevent impalement?',ytd:2,jan:0,feb:1,mar:1,apr:0,may:0,jun:0},
+      {q:'Inspection-Scaffolds & Ladders acceptable?',ytd:2,jan:0,feb:1,mar:0,apr:0,may:0,jun:1},
+      {q:'Working at Heights/Fall Protection-Are guardrails properly installed and maintained?',ytd:2,jan:0,feb:1,mar:1,apr:0,may:0,jun:0},
+      {q:'Electrical-Extension cords free of cuts, splices and bare wire?',ytd:2,jan:0,feb:2,mar:0,apr:0,may:0,jun:0},
+      {q:'Inspection-Vehicles & Mobile Equipment acceptable?',ytd:2,jan:0,feb:1,mar:0,apr:0,may:1,jun:0},
+      {q:'Working at Heights/Fall Protection-Overhead hazards properly identified?',ytd:2,jan:0,feb:1,mar:1,apr:0,may:0,jun:0},
+      {q:'Inspection-Housekeeping acceptable?',ytd:1,jan:0,feb:0,mar:0,apr:1,may:0,jun:0},
+      {q:'Electrical-All items addressed in this section?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Housekeeping-General appearance of work site neat and orderly?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Inspection-Cranes & Rigging acceptable?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:0,jun:1},
+      {q:'Inspection-Fire Protection acceptable?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:0,jun:1},
+      {q:'Electrical-Power tools and extension cords inspected and tagged with current color coding?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:"Working at Heights/Fall Protection-Leading edges 6'+ above lower level were observed properly protected or personnel using PFAS when exposed?",ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Working at Heights/Fall Protection-Are scaffolds properly tagged and inspected?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Working at Heights/Fall Protection-Is personal fall protection being used properly?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+      {q:'Confined Space / Trenching/Excavation-All items addressed in this section?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Inspection-Trenches & Excavations acceptable?',ytd:1,jan:0,feb:0,mar:0,apr:1,may:0,jun:0},
+      {q:'Segregation and Container Labeling-Are chemical and non-potable water containers in good condition, labeled and compatible with contents? (i.e., form oils, gasoline, diesel, caustics, oxidizers, etc.)',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:'Fire-Approved safety cans used for gasoline and fuel storage?',ytd:1,jan:0,feb:0,mar:1,apr:0,may:0,jun:0},
+      {q:"Inspection-Labels & SDS's (Safety Data Sheets) acceptable?",ytd:1,jan:0,feb:0,mar:0,apr:1,may:0,jun:0},
+      {q:'Struck By-Adequate machine/human interface safeguards were observed?',ytd:1,jan:0,feb:1,mar:0,apr:0,may:0,jun:0},
+    ],
+    'WATER':[
+      {q:'Working at Heights/Fall Protection-Scaffolds are engineered and being used as designed',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Working at Heights/Fall Protection-Guardrail system and toe boards in use?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+    ],
+    'RAIL':[
+      {q:'Electrical-All items addressed in this section?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Segregation and Container Labeling-All items addressed in this section?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+    ],
+    'Shared':[],
+  };
+  // Top-10 positive observations keyed by group and period
+  RAW._posQ={
+    all:[
+      {q:'Inspection-Hand/Power Tools acceptable?',ytd:188,jan:24,feb:32,mar:37,apr:33,may:30,jun:32},
+      {q:'Inspection-Training & Certifications (i.e. first aid/crane/signal/flagger/forklift/etc.) acceptable?',ytd:188,jan:24,feb:32,mar:37,apr:33,may:30,jun:32},
+      {q:'Inspection-Silica acceptable?',ytd:188,jan:24,feb:32,mar:37,apr:33,may:30,jun:32},
+      {q:'Inspection-Confined Space Hazards acceptable?',ytd:188,jan:24,feb:32,mar:37,apr:33,may:30,jun:32},
+      {q:'Inspection-Health Hazard Protection acceptable?',ytd:188,jan:24,feb:32,mar:37,apr:33,may:30,jun:32},
+      {q:'Inspection-Electrical acceptable?',ytd:187,jan:24,feb:32,mar:37,apr:32,may:30,jun:32},
+      {q:'Inspection-Spill Prevention acceptable?',ytd:187,jan:24,feb:32,mar:36,apr:33,may:30,jun:32},
+      {q:'Inspection-Cranes & Rigging acceptable?',ytd:186,jan:24,feb:32,mar:36,apr:33,may:30,jun:31},
+      {q:'Inspection-Storm Water Protection acceptable?',ytd:186,jan:23,feb:32,mar:36,apr:33,may:30,jun:32},
+      {q:'Inspection-Trenches & Excavations acceptable?',ytd:186,jan:23,feb:32,mar:37,apr:32,may:30,jun:32},
+    ],
+    'SE HIGHWAYS':[
+      {q:'Inspection-Hand/Power Tools acceptable?',ytd:119,jan:19,feb:20,mar:27,apr:16,may:17,jun:20},
+      {q:'Inspection-Health Hazard Protection acceptable?',ytd:119,jan:19,feb:20,mar:27,apr:16,may:17,jun:20},
+      {q:'Inspection-Silica acceptable?',ytd:119,jan:19,feb:20,mar:27,apr:16,may:17,jun:20},
+      {q:'Inspection-Confined Space Hazards acceptable?',ytd:119,jan:19,feb:20,mar:27,apr:16,may:17,jun:20},
+      {q:'Inspection-Training & Certifications (i.e. first aid/crane/signal/flagger/forklift/etc.) acceptable?',ytd:119,jan:19,feb:20,mar:27,apr:16,may:17,jun:20},
+      {q:'Inspection-Trenches & Excavations acceptable?',ytd:118,jan:18,feb:20,mar:27,apr:16,may:17,jun:20},
+      {q:'Inspection-Spill Prevention acceptable?',ytd:118,jan:19,feb:20,mar:26,apr:16,may:17,jun:20},
+      {q:'Inspection-Electrical acceptable?',ytd:118,jan:19,feb:20,mar:27,apr:15,may:17,jun:20},
+      {q:'Inspection-Cranes & Rigging acceptable?',ytd:118,jan:19,feb:20,mar:26,apr:16,may:17,jun:20},
+      {q:'Inspection-Vehicles & Mobile Equipment acceptable?',ytd:118,jan:19,feb:20,mar:27,apr:15,may:17,jun:20},
+    ],
+    'SW HIGHWAYS':[
+      {q:'Inspection-Confined Space Hazards acceptable?',ytd:69,jan:5,feb:12,mar:10,apr:17,may:13,jun:12},
+      {q:'Inspection-Access to work area acceptable?',ytd:69,jan:5,feb:12,mar:10,apr:17,may:13,jun:12},
+      {q:'Inspection-Electrical acceptable?',ytd:69,jan:5,feb:12,mar:10,apr:17,may:13,jun:12},
+      {q:'Inspection-Storm Water Protection acceptable?',ytd:69,jan:5,feb:12,mar:10,apr:17,may:13,jun:12},
+      {q:'Inspection-Training & Certifications (i.e. first aid/crane/signal/flagger/forklift/etc.) acceptable?',ytd:69,jan:5,feb:12,mar:10,apr:17,may:13,jun:12},
+      {q:'Inspection-Traffic Control acceptable?',ytd:69,jan:5,feb:12,mar:10,apr:17,may:13,jun:12},
+      {q:'Inspection-Health Hazard Protection acceptable?',ytd:69,jan:5,feb:12,mar:10,apr:17,may:13,jun:12},
+      {q:'Inspection-Clearing and Grubbing acceptable?',ytd:69,jan:5,feb:12,mar:10,apr:17,may:13,jun:12},
+      {q:'Inspection-Spill Prevention acceptable?',ytd:69,jan:5,feb:12,mar:10,apr:17,may:13,jun:12},
+      {q:'Inspection-Silica acceptable?',ytd:69,jan:5,feb:12,mar:10,apr:17,may:13,jun:12},
+    ],
+    'WATER':[
+      {q:'Working at Heights/Fall Protection-Warning signs posted where needed or required? Ex. "Fall Protection Required Beyond This Point"',ytd:2,jan:0,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:"Signage-Signs, bilingual as necessary, warning of hazards present (e.g., 'No Smoking in flammable/combustible storage areas)?",ytd:2,jan:0,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Housekeeping-Protruding nails and screws removed or bent over to prevent puncture?',ytd:2,jan:0,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:"Working at Heights/Fall Protection-Extension ladders secured at top and bottom and extend 3' above landing?",ytd:2,jan:0,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Personal Protective Equipment-Proper PPE being worn as required?',ytd:2,jan:0,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Personal Protective Equipment-Gloves being worn by personnel as necessary?',ytd:2,jan:0,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Personal Protective Equipment-Eye protection being worn by personnel as necessary?',ytd:2,jan:0,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Working at Heights/Fall Protection-All items addressed in this section?',ytd:2,jan:0,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Confined Space / Trenching/Excavation-Personnel trained in Trenching-Excavation as required?',ytd:2,jan:0,feb:0,mar:1,apr:0,may:1,jun:0},
+      {q:'Equipment & Tools-All items addressed in this section?',ytd:2,jan:0,feb:0,mar:1,apr:0,may:1,jun:0},
+    ],
+    'RAIL':[
+      {q:"Signage-Signs, bilingual as necessary, warning of hazards present (e.g., 'No Smoking in flammable/combustible storage areas)?",ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Confined Space / Trenching/Excavation-Personnel trained in Trenching-Excavation as required?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Working at Heights/Fall Protection-Warning signs posted where needed or required? Ex. "Fall Protection Required Beyond This Point"',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Personal Protective Equipment-Proper PPE being worn as required?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Housekeeping-Protruding nails and screws removed or bent over to prevent puncture?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Personal Protective Equipment-Eye protection being worn by personnel as necessary?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Personal Protective Equipment-All items addressed in this section?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Personal Protective Equipment-Gloves being worn by personnel as necessary?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Equipment & Tools-All items addressed in this section?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+      {q:'Working at Heights/Fall Protection-All items addressed in this section?',ytd:1,jan:0,feb:0,mar:0,apr:0,may:1,jun:0},
+    ],
+    'Shared':[
+      {q:'Working at Heights/Fall Protection-Warning signs posted where needed or required? Ex. "Fall Protection Required Beyond This Point"',ytd:2,jan:0,feb:0,mar:0,apr:0,may:2,jun:0},
+      {q:"Signage-Signs, bilingual as necessary, warning of hazards present (e.g., 'No Smoking in flammable/combustible storage areas)?",ytd:2,jan:0,feb:0,mar:0,apr:0,may:2,jun:0},
+      {q:'Housekeeping-Protruding nails and screws removed or bent over to prevent puncture?',ytd:2,jan:0,feb:0,mar:0,apr:0,may:2,jun:0},
+      {q:"Working at Heights/Fall Protection-Extension ladders secured at top and bottom and extend 3' above landing?",ytd:2,jan:0,feb:0,mar:0,apr:0,may:2,jun:0},
+      {q:'Personal Protective Equipment-Proper PPE being worn as required?',ytd:2,jan:0,feb:0,mar:0,apr:0,may:2,jun:0},
+      {q:'Personal Protective Equipment-Gloves being worn by personnel as necessary?',ytd:2,jan:0,feb:0,mar:0,apr:0,may:2,jun:0},
+      {q:'Personal Protective Equipment-Eye protection being worn by personnel as necessary?',ytd:2,jan:0,feb:0,mar:0,apr:0,may:2,jun:0},
+      {q:'Working at Heights/Fall Protection-All items addressed in this section?',ytd:2,jan:0,feb:0,mar:0,apr:0,may:2,jun:0},
+      {q:'Confined Space / Trenching/Excavation-Personnel trained in Trenching-Excavation as required?',ytd:2,jan:0,feb:0,mar:0,apr:0,may:2,jun:0},
+      {q:'Equipment & Tools-All items addressed in this section?',ytd:2,jan:0,feb:0,mar:0,apr:0,may:2,jun:0},
+    ],
+  };
+  RAW.tasks=[
+    {'Task Status':'Complete','Location Data Group Name':'Dallas','Created Year-Month':'2026-2','Created Date':'2026-02-11','Closed Date':'2026-03-17'},
+    {'Task Status':'Complete','Location Data Group Name':'Dallas','Created Year-Month':'2026-2','Created Date':'2026-02-11','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Austin','Created Year-Month':'2026-2','Created Date':'2026-02-11','Closed Date':'2026-03-17'},
+    {'Task Status':'Complete','Location Data Group Name':'Shared','Created Year-Month':'2026-2','Created Date':'2026-02-12','Closed Date':''},
+    {'Task Status':'To Do','Location Data Group Name':'Austin','Created Year-Month':'2026-3','Created Date':'2026-03-16','Closed Date':''},
+    {'Task Status':'To Do','Location Data Group Name':'Austin','Created Year-Month':'2026-3','Created Date':'2026-03-16','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Austin','Created Year-Month':'2026-3','Created Date':'2026-03-16','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Austin','Created Year-Month':'2026-3','Created Date':'2026-03-16','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Austin','Created Year-Month':'2026-3','Created Date':'2026-03-16','Closed Date':''},
+    {'Task Status':'To Do','Location Data Group Name':'Austin','Created Year-Month':'2026-3','Created Date':'2026-03-16','Closed Date':''},
+    {'Task Status':'To Do','Location Data Group Name':'Austin','Created Year-Month':'2026-3','Created Date':'2026-03-16','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Austin','Created Year-Month':'2026-4','Created Date':'2026-04-07','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Austin','Created Year-Month':'2026-4','Created Date':'2026-04-07','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Austin','Created Year-Month':'2026-4','Created Date':'2026-04-07','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Austin','Created Year-Month':'2026-4','Created Date':'2026-04-07','Closed Date':''},
+    {'Task Status':'To Do','Location Data Group Name':'Effingham Parkway','Created Year-Month':'2026-4','Created Date':'2026-04-15','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Shared','Created Year-Month':'2026-5','Created Date':'2026-05-18','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Shared','Created Year-Month':'2026-5','Created Date':'2026-05-18','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Shared','Created Year-Month':'2026-5','Created Date':'2026-05-19','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Shared','Created Year-Month':'2026-5','Created Date':'2026-05-19','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Shared','Created Year-Month':'2026-5','Created Date':'2026-05-19','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Austin','Created Year-Month':'2026-5','Created Date':'2026-05-22','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Austin','Created Year-Month':'2026-5','Created Date':'2026-05-22','Closed Date':''},
+    {'Task Status':'Complete','Location Data Group Name':'Shared','Created Year-Month':'2026-5','Created Date':'2026-05-29','Closed Date':''},
+    {'Task Status':'To Do','Location Data Group Name':'Austin','Created Year-Month':'2026-6','Created Date':'2026-06-29','Closed Date':''},
+  ];
+  RAW.questions=null; USE_DEMO=true; processAndRender();
+}
+
+function parseCSVFile(file){return new Promise((res,rej)=>Papa.parse(file,{header:true,skipEmptyLines:true,complete:r=>res(r.data),error:e=>rej(e)}));}
+function onFileChosen(input,wrapId,nameId){if(!input.files[0])return;document.getElementById(wrapId).classList.add('has-file');document.getElementById(nameId).textContent=input.files[0].name;checkLoadReady();}
+function checkLoadReady(){document.getElementById('btnLoad').disabled=!(document.getElementById('fileEvent').files.length&&document.getElementById('fileQuestion').files.length&&document.getElementById('fileTask').files.length);}
+async function loadCSVs(){
+  hideUpload();setLoading(true);
+  try{
+    const[evRows,qRows,tRows]=await Promise.all([parseCSVFile(document.getElementById('fileEvent').files[0]),parseCSVFile(document.getElementById('fileQuestion').files[0]),parseCSVFile(document.getElementById('fileTask').files[0])]);
+    evRows.forEach(r=>{r['Overall Score']=parseFloat(r['Overall Score'])||0;});
+    qRows.forEach(r=>{r['Question Is Answered Correctly']=parseInt(r['Question Is Answered Correctly'])||0;});
+    RAW.events=evRows;RAW.questions=qRows;RAW.tasks=tRows;RAW._negQ=null;RAW._posQ=null;USE_DEMO=false;processAndRender();
+  }catch(e){alert('Error reading CSV files: '+e.message);setLoading(false);}
+}
+
+function compute(months,group){
+  group=group||'all';
+  const isAll=months.length===0;
+  const byGrp=r=>group==='all'||(r['Location Data Group Name']||'')=== group;
+  const evts=(isAll?RAW.events:RAW.events.filter(r=>months.includes(r['Completed Year-Month']))).filter(byGrp);
+  // Trend data: respects both group and month filters
+  const trendSrc=evts; // evts is already filtered by both group and month
+  const trendData={};
+  trendSrc.forEach(r=>{
+    const ym=r['Completed Year-Month'];if(!ym)return;
+    if(!trendData[ym])trendData[ym]={count:0,scoreSum:0};
+    trendData[ym].count++;
+    trendData[ym].scoreSum+=parseFloat(r['Overall Score'])||0;
+  });
+  Object.keys(trendData).forEach(ym=>{trendData[ym].avgScore=trendData[ym].scoreSum/trendData[ym].count;});
+  // Tasks filtered by month only — task location groups differ from audit event groups
+  const tRows=isAll?RAW.tasks:RAW.tasks.filter(r=>months.includes(r['Created Year-Month']));
+  let pos=0,neg=0,negTop={},posTop={};
+  if(RAW.questions){
+    const qf=isAll?RAW.questions:RAW.questions.filter(r=>months.includes(r['Completed Year-Month']));
+    qf.forEach(r=>{const resp=(r['Question Response']||'').trim();if(!resp||resp==='N/A')return;const c=parseInt(r['Question Is Answered Correctly']);const label=(r['Section-Question']||r['Question Title']||'').replace(/[\t\n]/g,'').trim();if(c===1){pos++;if(label)posTop[label]=(posTop[label]||0)+1;}else{neg++;if(label)negTop[label]=(negTop[label]||0)+1;}});
+  }else{
+    const moMap={'2026-1':'jan','2026-2':'feb','2026-3':'mar','2026-4':'apr','2026-5':'may','2026-6':'jun'};
+    const k=isAll?'ytd':(moMap[months[0]]||'jan');
+    // Accurate KPI totals by period and group (from actual CSV data)
+    const kpiTotals={
+      all:          {ytd:{pos:7591,neg:114},jan:{pos:682,neg:13},feb:{pos:2190,neg:29},mar:{pos:1984,neg:25},apr:{pos:758,neg:14},may:{pos:1338,neg:26},jun:{pos:639,neg:7}},
+      'SE HIGHWAYS':{ytd:{pos:4945,neg:72}, jan:{pos:579,neg:13},feb:{pos:1613,neg:16},mar:{pos:1217,neg:15},apr:{pos:410,neg:9}, may:{pos:728,neg:17},jun:{pos:398,neg:2}},
+      'SW HIGHWAYS':{ytd:{pos:2215,neg:38}, jan:{pos:103,neg:0}, feb:{pos:577,neg:13}, mar:{pos:680,neg:10}, apr:{pos:348,neg:5}, may:{pos:266,neg:5}, jun:{pos:241,neg:5}},
+      'WATER':      {ytd:{pos:172, neg:2},  jan:{pos:0,  neg:0},  feb:{pos:0,  neg:0},  mar:{pos:87, neg:0},  apr:{pos:0,  neg:0},  may:{pos:85, neg:2}, jun:{pos:0,  neg:0}},
+      'RAIL':       {ytd:{pos:85,  neg:2},  jan:{pos:0,  neg:0},  feb:{pos:0,  neg:0},  mar:{pos:0,  neg:0},  apr:{pos:0,  neg:0},  may:{pos:85, neg:2}, jun:{pos:0,  neg:0}},
+      'Shared':     {ytd:{pos:174, neg:0},  jan:{pos:0,  neg:0},  feb:{pos:0,  neg:0},  mar:{pos:0,  neg:0},  apr:{pos:0,  neg:0},  may:{pos:174,neg:0}, jun:{pos:0,  neg:0}},
+    };
+    const grpKey=group||'all';
+    const grpTotals=(kpiTotals[grpKey]||kpiTotals['all'])[k]||{pos:0,neg:0};
+    pos=grpTotals.pos; neg=grpTotals.neg;
+    const grpKey2=group==='all'?'all':group;
+    const negList=RAW._negQ[grpKey2]||[];
+    const posList=RAW._posQ[grpKey2]||[];
+    negList.forEach(q=>{const c=q[k]||0;if(c>0){negTop[q.q]=c;}});
+    posList.forEach(q=>{const c=q[k]||0;if(c>0){posTop[q.q]=c;}});
+  }
+  const rByMonth={};
+  if(RAW.questions){const qfR=(isAll?RAW.questions:RAW.questions.filter(r=>months.includes(r['Completed Year-Month']))).filter(r=>group==='all'||(r['Location Data Group Name']||'')===group);qfR.forEach(r=>{const ym=r['Completed Year-Month'];if(!ym)return;const resp=(r['Question Response']||'').trim();if(!resp||resp==='N/A')return;rByMonth[ym]=(rByMonth[ym]||0)+1;});if(isAll){const allYMs=Array.from(new Set(RAW.questions.map(r=>r['Completed Year-Month']).filter(Boolean))).sort();allYMs.forEach(m=>{if(rByMonth[m]===undefined)rByMonth[m]=0;});}}
+  else{const _rbmByGroup={'all':{'2026-1':695,'2026-2':2219,'2026-3':2009,'2026-4':772,'2026-5':1364,'2026-6':646},'SE HIGHWAYS':{'2026-1':592,'2026-2':1629,'2026-3':1232,'2026-4':419,'2026-5':745,'2026-6':400},'SW HIGHWAYS':{'2026-1':103,'2026-2':590,'2026-3':690,'2026-4':353,'2026-5':271,'2026-6':246},'WATER':{'2026-1':0,'2026-2':0,'2026-3':87,'2026-4':0,'2026-5':87,'2026-6':0},'RAIL':{'2026-1':0,'2026-2':0,'2026-3':0,'2026-4':0,'2026-5':87,'2026-6':0},'Shared':{'2026-1':0,'2026-2':0,'2026-3':0,'2026-4':0,'2026-5':174,'2026-6':0}};const _rbm=_rbmByGroup[group]||_rbmByGroup['all'];if(isAll)Object.assign(rByMonth,_rbm);else months.forEach(m=>{if(_rbm[m]!==undefined)rByMonth[m]=_rbm[m];});}
+  const posGrp={},negGrp={},evtGrp={},scoreGrp={};
+  if(RAW.questions){
+    const qf=isAll?RAW.questions:RAW.questions.filter(r=>months.includes(r['Completed Year-Month']));
+    qf.forEach(r=>{const g=r['Location Data Group Name']||'Unknown';const resp=(r['Question Response']||'').trim();if(!resp||resp==='N/A')return;const c=parseInt(r['Question Is Answered Correctly']);if(c===1)posGrp[g]=(posGrp[g]||0)+1;else if(c===0)negGrp[g]=(negGrp[g]||0)+1;});
+  }else{
+    const k=isAll?'ytd':({'2026-1':'jan','2026-2':'feb','2026-3':'mar','2026-4':'apr','2026-5':'may','2026-6':'jun'}[months[0]]||'jan');
+    const pg={ytd:{'SE HIGHWAYS':4945,'SW HIGHWAYS':2215,'WATER':172,'RAIL':85,'Shared':174},jan:{'SE HIGHWAYS':579,'SW HIGHWAYS':103},feb:{'SE HIGHWAYS':1613,'SW HIGHWAYS':577},mar:{'SE HIGHWAYS':1217,'SW HIGHWAYS':680,'WATER':87},apr:{'SE HIGHWAYS':410,'SW HIGHWAYS':348},may:{'SE HIGHWAYS':728,'SW HIGHWAYS':266,'WATER':85,'RAIL':85,'Shared':174},jun:{'SE HIGHWAYS':398,'SW HIGHWAYS':241}};
+    const ng={ytd:{'SE HIGHWAYS':72,'SW HIGHWAYS':38,'WATER':2,'RAIL':2},jan:{'SE HIGHWAYS':13,'SW HIGHWAYS':0},feb:{'SE HIGHWAYS':16,'SW HIGHWAYS':13},mar:{'SE HIGHWAYS':15,'SW HIGHWAYS':10},apr:{'SE HIGHWAYS':9,'SW HIGHWAYS':5},may:{'SE HIGHWAYS':17,'SW HIGHWAYS':5,'WATER':2,'RAIL':2},jun:{'SE HIGHWAYS':2,'SW HIGHWAYS':5}};
+    const pd=pg[k]||{},nd=ng[k]||{};
+    // If a specific group is selected, only show that group's bar
+    const grpFilter=group==='all'?null:group;
+    Object.entries(pd).forEach(([g,v])=>{if(!grpFilter||g===grpFilter)posGrp[g]=v;});
+    Object.entries(nd).forEach(([g,v])=>{if(!grpFilter||g===grpFilter)negGrp[g]=v;});
+  }
+  evts.forEach(r=>{const g=r['Location Data Group Name']||'Unknown';evtGrp[g]=(evtGrp[g]||0)+1;if(!scoreGrp[g])scoreGrp[g]=[];scoreGrp[g].push(parseFloat(r['Overall Score'])||0);});
+  const locMap={},assigneeMap={};
+  evts.forEach(r=>{const l=r['Location Name']||'Unknown';locMap[l]=(locMap[l]||0)+1;const a=r['Assigned To']||'Unknown';if(!assigneeMap[a])assigneeMap[a]={audits:0,scores:[]};assigneeMap[a].audits++;assigneeMap[a].scores.push(parseFloat(r['Overall Score'])||0);});
+  const TODAY=new Date();let todo=0,inprog=0,done=0,daysOpen=[],daysClose=[];
+  tRows.forEach(r=>{const s=(r['Task Status']||'').trim();if(s==='Complete'||s==='Closed')done++;else if(s==='In Progress')inprog++;else todo++;const created=r['Created Date']?new Date(r['Created Date']):null;const closed=r['Closed Date']?new Date(r['Closed Date']):null;if(created&&!isNaN(created)){const o=(TODAY-created)/864e5;if(o>=0)daysOpen.push(o);if(closed&&!isNaN(closed)){const c2=(closed-created)/864e5;if(c2>=0)daysClose.push(c2);}}});
+  const avg=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;
+  // tByMonth: build from month-filtered tRows so chart respects the period filter
+  const tByMonth={};tRows.forEach(r=>{const ym=r['Created Year-Month'];if(!ym)return;if(!tByMonth[ym])tByMonth[ym]={todo:0,inprog:0,done:0};const s=(r['Task Status']||'').trim();if(s==='Complete'||s==='Closed')tByMonth[ym].done++;else if(s==='In Progress')tByMonth[ym].inprog++;else tByMonth[ym].todo++;});
+  const sortDesc=obj=>Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+  return{kpi:{events:evts.length,pos,neg,total:pos+neg},rByMonth,posGrp,negGrp,evtGrp,scoreGrp,locMap,assigneeMap,tasks:{todo,inprog,done,total:todo+inprog+done,avgOpen:avg(daysOpen),avgClose:avg(daysClose)},tByMonth,trendData,negTop10:sortDesc(negTop).slice(0,10),posTop10:sortDesc(posTop).slice(0,10)};
+}
+
+function buildFilterBar(){
+  const ms=new Set(),gs=new Set();
+  (RAW.events||[]).forEach(r=>{
+    if(r['Completed Year-Month'])ms.add(r['Completed Year-Month']);
+    if(r['Location Data Group Name'])gs.add(r['Location Data Group Name']);
+  });
+  MONTHS=Array.from(ms).sort();
+  // Rebuild period buttons (preserve after group selector)
+  const bar=document.getElementById('filterBar');
+  // Remove old period buttons but keep the group select
+  const periodBtns=bar.querySelectorAll('.filter-btn');
+  periodBtns.forEach(b=>b.remove());
+  // Re-insert period label and buttons before the separator
+  const sep=bar.querySelector('.filter-sep');
+  const ytdBtn=mkBtn(getYear()+' YTD','ytd',true);
+  bar.insertBefore(ytdBtn,sep);
+  const periodLabel=document.createElement('span');
+  periodLabel.className='filter-label';periodLabel.textContent='Period:';
+  bar.insertBefore(periodLabel,ytdBtn);
+  MONTHS.forEach(ym=>{bar.insertBefore(mkBtn(fmtYM(ym),ym,false),sep);});
+  // Populate group select (only on first load or CSV reload)
+  const sel=document.getElementById('groupSelect');
+  const prevVal=sel.value;
+  sel.innerHTML='<option value="all">All Locations</option>';
+  Array.from(gs).sort().forEach(g=>{
+    const o=document.createElement('option');o.value=g;o.textContent=g;sel.appendChild(o);
+  });
+  if(prevVal&&prevVal!=='all'){sel.value=prevVal;}
+}
+function mkBtn(text,value,active){const b=document.createElement('button');b.className='filter-btn'+(active?' active':'');b.dataset.filter=value;b.textContent=text;b.onclick=()=>{document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');CURRENT_FILTER=value;renderDashboard(value);};return b;}
+function getYear(){return MONTHS.length?MONTHS[0].split('-')[0]:'2026';}
+function fmtYM(ym){const[y,m]=ym.split('-');return new Date(+y,+m-1,1).toLocaleString('en-US',{month:'long',year:'numeric'});}
+function lastDay(ym){const[y,m]=ym.split('-');return new Date(+y,+m,0).getDate();}
+
+function processAndRender(){
+  buildFilterBar();setLoading(false);
+  const dot=document.getElementById('statusDot'),txt=document.getElementById('statusText');
+  if(USE_DEMO){dot.className='status-dot demo';txt.textContent='Using built-in data (Jan–May 2026). Click "Upload New Data" to load your CSV files.';}
+  else{dot.className='status-dot';txt.textContent='Live data loaded · '+MONTHS.map(fmtYM).join(', ')+' · '+RAW.events.length+' audit events';}
+  renderDashboard('ytd');
+  applyDashSettings();
+}
+
+function onGroupChange(){
+  CURRENT_GROUP=document.getElementById('groupSelect').value;
+  renderDashboard(CURRENT_FILTER);
+}
+function renderDashboard(filter){
+  const months=filter==='ytd'?[]:[filter];const d=compute(months,CURRENT_GROUP);
+  let title,range;
+  if(filter==='ytd'){title=getYear()+' Year-to-Date';const a=MONTHS[0]||'2026-1',z=MONTHS[MONTHS.length-1]||'2026-3';const am=new Date(...a.split('-').map((v,i)=>i===1?v-1:+v)).toLocaleString('en-US',{month:'long'});const zm=new Date(...z.split('-').map((v,i)=>i===1?v-1:+v)).toLocaleString('en-US',{month:'long'});range=am+' 1 – '+zm+' '+lastDay(z)+', '+getYear();}
+  else{title=fmtYM(filter);const[y,m]=filter.split('-');const mn=new Date(+y,+m-1,1).toLocaleString('en-US',{month:'long'});range=mn+' 1 – '+mn+' '+lastDay(filter)+', '+y;}
+  document.getElementById('periodTitle').textContent=title;document.getElementById('periodRange').textContent=range;
+  const grpLabel=CURRENT_GROUP==='all'?'All Locations':CURRENT_GROUP;
+  document.getElementById('periodLocations').textContent=grpLabel;
+  const f=n=>Number(n).toLocaleString(),p=(a,b)=>b?(a/b*100).toFixed(1):'0.0';
+  document.getElementById('kpi-events').textContent=f(d.kpi.events);document.getElementById('kpi-pos').textContent=f(d.kpi.pos);document.getElementById('kpi-neg').textContent=f(d.kpi.neg);document.getElementById('kpi-total').textContent=f(d.kpi.total);
+  document.getElementById('kpi-pos-pct').textContent=p(d.kpi.pos,d.kpi.total)+'% of total responses';document.getElementById('kpi-neg-pct').textContent=p(d.kpi.neg,d.kpi.total)+'% of total responses';
+  // Audit Events & Conformance combo chart — always show all available months
+  const trendMonths=Object.keys(d.trendData).sort();
+  buildCombo('auditsTrendChart',
+    trendMonths.map(fmtYM),
+    trendMonths.map(m=>d.trendData[m].count),
+    trendMonths.map(m=>+(d.trendData[m].avgScore).toFixed(2))
+  );
+  buildDonut('donutChart',['Positive','Negative'],[d.kpi.pos,d.kpi.neg],[C.green,C.red]);
+  const rMo=Object.keys(d.rByMonth).sort();buildBar('responsesByMonthChart',rMo.map(fmtYM),[{label:'Total Responses',data:rMo.map(m=>d.rByMonth[m]),backgroundColor:C.sky,borderRadius:4}],{legend:false});
+  const pgK=Object.keys(d.posGrp).sort(),ngK=Object.keys(d.negGrp).sort();buildHBar('posGroupChart',pgK,pgK.map(k=>d.posGrp[k]),C.green);buildHBar('negGroupChart',ngK,ngK.map(k=>d.negGrp[k]),C.red);
+  renderTop10('negTableBody',d.negTop10,false);renderTop10('posTableBody',d.posTop10,true);
+  const negTop10Sum=d.negTop10.reduce((a,[,c])=>a+c,0);
+  const posTop10Sum=d.posTop10.reduce((a,[,c])=>a+c,0);
+  const negCovEl=document.getElementById('negCoverage');
+  const posCovEl=document.getElementById('posCoverage');
+  if(negCovEl)negCovEl.textContent=negTop10Sum+' ('+p(negTop10Sum,d.kpi.neg)+'%)';
+  if(posCovEl)posCovEl.textContent=posTop10Sum+' ('+p(posTop10Sum,d.kpi.pos)+'%)';
+  // Location group bar + table
+  const lgK=Object.keys(d.evtGrp).sort((a,b)=>d.evtGrp[b]-d.evtGrp[a]);
+  buildHBar('locationGroupChart',lgK,lgK.map(k=>d.evtGrp[k]),C.blue);
+  document.getElementById('locGroupTableBody').innerHTML=lgK.map(k=>'<tr><td>'+k+'</td><td style="text-align:right;font-weight:600;">'+d.evtGrp[k]+'</td></tr>').join('');
+
+  // Site location bar + table
+  const locSorted=Object.entries(d.locMap).sort((a,b)=>b[1]-a[1]);
+  buildHBar('locSiteChart',locSorted.map(([n])=>n),locSorted.map(([,c])=>c),C.sky);
+  document.getElementById('locTableBody').innerHTML=locSorted.map(([n,c])=>'<tr><td>'+n+'</td><td style="text-align:right;font-weight:600;">'+c+'</td></tr>').join('');
+  // Assignee bar + table (audits only)
+  const assigneeSorted=Object.entries(d.assigneeMap).map(([n,v])=>({n,audits:v.audits})).sort((a,b)=>b.audits-a.audits).slice(0,15);
+  buildHBar('assigneeChart',assigneeSorted.map(r=>r.n),assigneeSorted.map(r=>r.audits),C.accent);
+  document.getElementById('assigneeTableBody').innerHTML=assigneeSorted.map(r=>'<tr><td>'+r.n+'</td><td style="text-align:right;font-weight:600;">'+r.audits+'</td></tr>').join('');
+  const t=d.tasks;document.getElementById('task-todo').textContent=t.todo;document.getElementById('task-inprog').textContent=t.inprog;document.getElementById('task-done').textContent=t.done;document.getElementById('task-days').textContent=t.avgClose>0?t.avgClose.toFixed(1):'—';document.getElementById('task-todo-sub').textContent='of '+t.total+' total tasks';document.getElementById('task-done-pct').textContent=t.total>0?p(t.done,t.total)+'% complete':'No tasks';document.getElementById('task-open-days').textContent=t.avgOpen>0?'Avg days open: '+t.avgOpen.toFixed(1):'No open tasks';
+  buildDonut('taskDonutChart',['Completed','To Do','In Progress'],[t.done,t.todo,t.inprog],[C.green,C.accent,C.sky],55);
+  const tmK=Object.keys(d.tByMonth).sort();buildBar('tasksByMonthChart',tmK.map(fmtYM),[{label:'Completed',data:tmK.map(m=>d.tByMonth[m].done),backgroundColor:C.green,borderRadius:3},{label:'To Do',data:tmK.map(m=>d.tByMonth[m].todo),backgroundColor:C.accent,borderRadius:3},{label:'In Progress',data:tmK.map(m=>d.tByMonth[m].inprog),backgroundColor:C.sky,borderRadius:3}],{stacked:true});
+}
+
+function buildCombo(id,labels,counts,scores){
+  dc(id);
+  CHARTS[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'Events',data:counts,backgroundColor:'#1A4A8A',borderRadius:4,yAxisID:'y',order:2},
+        {label:'Conformance',data:scores,type:'line',borderColor:'#F7A800',backgroundColor:'transparent',
+         borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#F7A800',yAxisID:'y2',tension:0.3,order:1},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{family:'Barlow',size:12},padding:16}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:'Barlow',size:11}}},
+        y:{beginAtZero:true,position:'left',title:{display:true,text:'Events',font:{family:'Barlow',size:11},color:'#5A6880'},
+           grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{family:'Barlow',size:11}}},
+        y2:{position:'right',
+            min:(ctx=>{const vals=ctx.chart.data.datasets[1]?.data||[];const mn=Math.min(...vals);return mn?Math.max(0,Math.floor((mn-2)/5)*5):80;}),
+            max:(ctx=>{const vals=ctx.chart.data.datasets[1]?.data||[];const mx=Math.max(...vals);return mx?Math.min(100,Math.ceil((mx+2)/5)*5):100;}),
+            title:{display:true,text:'Score',font:{family:'Barlow',size:11},color:'#5A6880'},
+            grid:{drawOnChartArea:false},ticks:{font:{family:'Barlow',size:11},callback:v=>v+'%'}},
+      }
+    }
+  });
+}
+function dc(id){if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}}
+function buildDonut(id,labels,values,colors,cutout=62){dc(id);CHARTS[id]=new Chart(document.getElementById(id).getContext('2d'),{type:'doughnut',data:{labels,datasets:[{data:values,backgroundColor:colors,borderWidth:2,borderColor:'#fff',hoverOffset:6}]},options:{cutout:cutout+'%',plugins:{legend:{position:'right',labels:{font:{family:'Barlow',size:12},padding:12}},tooltip:{callbacks:{label:c=>' '+c.label+': '+c.parsed.toLocaleString()+' ('+(c.parsed/(values.reduce((a,b)=>a+b,0)||1)*100).toFixed(1)+'%)'}}}}});}
+function buildBar(id,labels,datasets,opts={}){dc(id);CHARTS[id]=new Chart(document.getElementById(id).getContext('2d'),{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:opts.legend!==false,labels:{font:{family:'Barlow',size:11},padding:10}}},scales:{x:{stacked:!!opts.stacked,grid:{display:false},ticks:{font:{family:'Barlow',size:11}}},y:{stacked:!!opts.stacked,beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{family:'Barlow',size:11}},max:opts.yMax}}}});}
+function buildHBar(id,labels,values,color){dc(id);CHARTS[id]=new Chart(document.getElementById(id).getContext('2d'),{type:'bar',data:{labels,datasets:[{data:values,backgroundColor:color,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},sounds:{x:{beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{family:'Barlow',size:11}}},y:{grid:{display:false},ticks:{font:{family:'Barlow',size:11}}}},scales:{x:{beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{family:'Barlow',size:11}}},y:{grid:{display:false},ticks:{font:{family:'Barlow',size:11}}}}}});}
+function renderTop10(bodyId,sorted,isPos){const max=sorted[0]?.[1]||1;document.getElementById(bodyId).innerHTML=sorted.map(([q,c],i)=>{const label=q.replace(/\\t|\\n|\t|\n/g,'').trim();const barW=Math.max(4,Math.round(c/max*80));return '<tr><td><span class="rank-badge '+(i<3?'top3':'')+'">'+( i+1)+'</span></td><td>'+label+'</td><td><div class="count-bar"><div class="count-bar-fill'+(isPos?' pos':'')+'" style="width:'+barW+'px"></div><span class="count-val">'+c+'</span></div></td></tr>';}).join('');}
+function setLoading(on){document.getElementById('loadingState').classList.toggle('show',on);document.getElementById('dashContent').style.display=on?'none':'';if(on){document.getElementById('statusDot').className='status-dot loading';document.getElementById('statusText').textContent='Processing CSV data…';}}
+function showUpload(){document.getElementById('uploadOverlay').classList.add('show');}
+function hideUpload(){document.getElementById('uploadOverlay').classList.remove('show');}
+function printToPDF(){document.title='Balfour Beatty Audits Dashboard – '+document.getElementById('periodTitle').textContent;window.print();}
+document.getElementById('uploadOverlay').addEventListener('click',e=>{if(e.target.id==='uploadOverlay')hideUpload();});
+
+// ── Dashboard Customization ──────────────────────────────────
+const DEFAULT_SECTIONS=[
+  {id:'kpi',      label:'KPI Summary Cards'},
+  {id:'trend',    label:'Audit Events & Conformance Trend'},
+  {id:'responses',label:'Question Responses & Monthly Totals'},
+  {id:'bygroup',  label:'Responses by Location Group'},
+  {id:'top10',    label:'Top 10 Observations'},
+  {id:'bylocation',label:'Audits by Location Group'},
+  {id:'siteassignee',label:'Audits by Site & Assignee'},
+  {id:'taskstats',label:'Task Statistics'},
+  {id:'taskcharts',label:'Task Charts'},
+];
+let dashSections=loadSections();
+function loadSections(){try{const s=localStorage.getItem('bb-dash-v1');if(s){const p=JSON.parse(s);if(Array.isArray(p)&&p.length===DEFAULT_SECTIONS.length)return p;}}catch(e){}return DEFAULT_SECTIONS.map(s=>({...s,visible:true}));}
+function saveSections(){try{localStorage.setItem('bb-dash-v1',JSON.stringify(dashSections));}catch(e){}}
+function applyDashSettings(){
+  const container=document.getElementById('dashContent');
+  dashSections.forEach(sec=>{
+    const el=document.getElementById('ds-'+sec.id);
+    if(!el)return;
+    el.classList.toggle('hidden',!sec.visible);
+    container.appendChild(el);
+  });
+}
+function openSettings(){renderSettingsList();document.getElementById('settingsOverlay').classList.add('show');}
+function closeSettings(){document.getElementById('settingsOverlay').classList.remove('show');}
+function toggleSection(idx,visible){dashSections[idx].visible=visible;saveSections();applyDashSettings();}
+function resetSettings(){dashSections=DEFAULT_SECTIONS.map(s=>({...s,visible:true}));saveSections();applyDashSettings();renderSettingsList();}
+let dragIdx=null;
+function renderSettingsList(){
+  const list=document.getElementById('settingsList');
+  list.innerHTML='';
+  dashSections.forEach((sec,i)=>{
+    const li=document.createElement('li');
+    li.className='settings-item';
+    li.draggable=true;
+    li.dataset.idx=i;
+    li.innerHTML=`<span class="drag-handle">&#8942;&#8942;</span><span class="item-label">${sec.label}</span><label class="toggle"><input type="checkbox"${sec.visible?' checked':''}><span class="toggle-slider"></span></label>`;
+    li.querySelector('input').addEventListener('change',e=>toggleSection(i,e.target.checked));
+    li.addEventListener('dragstart',e=>{dragIdx=i;setTimeout(()=>li.classList.add('dragging'),0);e.dataTransfer.effectAllowed='move';});
+    li.addEventListener('dragend',()=>{li.classList.remove('dragging');document.querySelectorAll('.settings-item').forEach(x=>x.classList.remove('drag-over'));dragIdx=null;});
+    li.addEventListener('dragover',e=>{e.preventDefault();document.querySelectorAll('.settings-item').forEach(x=>x.classList.remove('drag-over'));li.classList.add('drag-over');});
+    li.addEventListener('drop',e=>{e.preventDefault();const ti=parseInt(li.dataset.idx);if(dragIdx!==null&&dragIdx!==ti){const moved=dashSections.splice(dragIdx,1)[0];dashSections.splice(ti,0,moved);saveSections();applyDashSettings();renderSettingsList();}});
+    list.appendChild(li);
+  });
+}
+
+loadDemoData();
+
+const BB_ACCESS_HASH='a25b46a7b621d1636bb1294acc769a7308384cbb0cf453525ddb9f37a4d4d901';
+async function sha256Hex(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function unlockGate(){
+  document.getElementById('accessGate').classList.add('unlocked');
+  document.body.classList.remove('gate-locked');
+}
+async function checkAccessCode(){
+  const input=document.getElementById('accessCodeInput');
+  const err=document.getElementById('accessError');
+  const code=input.value.trim().toUpperCase();
+  if(!code)return;
+  const hash=await sha256Hex(code);
+  if(hash===BB_ACCESS_HASH){
+    try{localStorage.setItem('bb-dash-auth','1');}catch(e){}
+    err.style.display='none';
+    unlockGate();
+  }else{
+    err.style.display='block';
+    input.value='';
+    input.focus();
+  }
+}
+document.getElementById('accessForm').addEventListener('submit',function(e){e.preventDefault();checkAccessCode();});
+try{
+  if(localStorage.getItem('bb-dash-auth')==='1')unlockGate();
+}catch(e){}
+</script>
+</body>
+</html>
