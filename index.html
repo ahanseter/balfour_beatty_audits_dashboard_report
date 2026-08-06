@@ -52,7 +52,7 @@
   .kpi-card.green::before{background:var(--bb-green);}
   .kpi-card.red::before{background:var(--bb-red);}
   .kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--bb-muted);margin-bottom:6px;}
-  .kpi-value{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:42px;line-height:1;color:var(--bb-navy);letter-spacing:-1px;}
+  .kpi-value{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:clamp(26px,6vw,42px);line-height:1;color:var(--bb-navy);letter-spacing:-1px;word-break:break-word;}
   .kpi-sub{font-size:12px;color:var(--bb-muted);margin-top:4px;}
   .section-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:var(--bb-navy);letter-spacing:.2px;padding-bottom:8px;border-bottom:2px solid var(--bb-border);margin-bottom:16px;text-transform:uppercase;}
   .charts-row{display:grid;gap:20px;margin-bottom:24px;}
@@ -83,7 +83,7 @@
   .tasks-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
   .task-stat{background:#fff;border:1px solid var(--bb-border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);}
   .task-stat-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--bb-muted);margin-bottom:4px;}
-  .task-stat-val{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:var(--bb-navy);}
+  .task-stat-val{font-family:'Barlow Condensed',sans-serif;font-size:clamp(22px,5vw,32px);font-weight:800;color:var(--bb-navy);word-break:break-word;}
   .task-stat-sub{font-size:11px;color:var(--bb-muted);}
   .page-divider{margin:32px 0 28px;border:none;border-top:2px dashed var(--bb-border);position:relative;}
   .page-divider::after{content:attr(data-label);position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--bb-light);padding:0 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--bb-muted);white-space:nowrap;}
@@ -106,7 +106,7 @@
 .settings-item:hover{background:var(--bb-light);}
 .settings-item.drag-over{border-color:var(--bb-sky);background:#f0f7ff;}
 .settings-item.dragging{opacity:.45;}
-.drag-handle{color:var(--bb-muted);font-size:18px;cursor:grab;flex-shrink:0;line-height:1;}
+.drag-handle{color:var(--bb-muted);font-size:18px;cursor:grab;flex-shrink:0;line-height:1;touch-action:none;padding:4px;}
 .drag-handle:active{cursor:grabbing;}
 .item-label{flex:1;font-size:13px;font-weight:500;color:var(--bb-text);}
 .toggle{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;}
@@ -135,6 +135,25 @@
 .access-error{color:var(--bb-red);font-size:12px;margin-top:12px;font-weight:600;}
 body.gate-locked{overflow:hidden;}
 @media print{.access-gate{display:none!important;}}
+
+@media (max-width:900px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .tasks-grid{grid-template-columns:repeat(2,1fr);}
+  .charts-row.col-2,.charts-row.col-12{grid-template-columns:1fr;}
+}
+@media (max-width:560px){
+  .topbar{flex-wrap:wrap;height:auto;padding:10px 16px;row-gap:8px;}
+  .topbar-actions{flex-wrap:wrap;width:100%;justify-content:flex-start;}
+  .filterbar{flex-wrap:wrap;height:auto;padding:8px 16px;}
+  .main{padding:16px 14px 32px;}
+  .kpi-grid{grid-template-columns:1fr;}
+  .tasks-grid{grid-template-columns:1fr;}
+  .kpi-card{padding:16px 18px;}
+  .period-header{gap:6px;}
+  .period-locations{margin-left:0;}
+  .settings-panel{width:100%;right:-100%;}
+  .access-modal{padding:32px 24px;}
+}
 </style>
 </head>
 <body class="gate-locked">
@@ -1004,23 +1023,63 @@ function openSettings(){renderSettingsList();document.getElementById('settingsOv
 function closeSettings(){document.getElementById('settingsOverlay').classList.remove('show');}
 function toggleSection(idx,visible){dashSections[idx].visible=visible;saveSections();applyDashSettings();}
 function resetSettings(){dashSections=DEFAULT_SECTIONS.map(s=>({...s,visible:true}));saveSections();applyDashSettings();renderSettingsList();}
-let dragIdx=null;
 function renderSettingsList(){
   const list=document.getElementById('settingsList');
   list.innerHTML='';
   dashSections.forEach((sec,i)=>{
     const li=document.createElement('li');
     li.className='settings-item';
-    li.draggable=true;
     li.dataset.idx=i;
     li.innerHTML=`<span class="drag-handle">&#8942;&#8942;</span><span class="item-label">${sec.label}</span><label class="toggle"><input type="checkbox"${sec.visible?' checked':''}><span class="toggle-slider"></span></label>`;
     li.querySelector('input').addEventListener('change',e=>toggleSection(i,e.target.checked));
-    li.addEventListener('dragstart',e=>{dragIdx=i;setTimeout(()=>li.classList.add('dragging'),0);e.dataTransfer.effectAllowed='move';});
-    li.addEventListener('dragend',()=>{li.classList.remove('dragging');document.querySelectorAll('.settings-item').forEach(x=>x.classList.remove('drag-over'));dragIdx=null;});
-    li.addEventListener('dragover',e=>{e.preventDefault();document.querySelectorAll('.settings-item').forEach(x=>x.classList.remove('drag-over'));li.classList.add('drag-over');});
-    li.addEventListener('drop',e=>{e.preventDefault();const ti=parseInt(li.dataset.idx);if(dragIdx!==null&&dragIdx!==ti){const moved=dashSections.splice(dragIdx,1)[0];dashSections.splice(ti,0,moved);saveSections();applyDashSettings();renderSettingsList();}});
+    li.querySelector('.drag-handle').addEventListener('pointerdown',e=>startReorderDrag(e,li));
     list.appendChild(li);
   });
+}
+
+// Pointer Events (not native HTML5 drag) so reordering works identically with mouse,
+// touch, and pen — native draggable/dragstart/dragover never fire on touch devices.
+let reorderState=null;
+function startReorderDrag(e,li){
+  e.preventDefault();
+  const list=document.getElementById('settingsList');
+  reorderState={startIdx:parseInt(li.dataset.idx),li,items:Array.from(list.querySelectorAll('.settings-item')),overIdx:null};
+  li.classList.add('dragging');
+  li.style.position='relative';li.style.zIndex='10';
+  try{li.setPointerCapture(e.pointerId);}catch(err){}
+  document.addEventListener('pointermove',onReorderMove);
+  document.addEventListener('pointerup',onReorderEnd,{once:true});
+  document.addEventListener('pointercancel',onReorderEnd,{once:true});
+}
+function onReorderMove(e){
+  if(!reorderState)return;
+  const {li,items,startIdx}=reorderState;
+  const startRect=li.getBoundingClientRect();
+  if(!reorderState.startTop)reorderState.startTop=startRect.top;
+  li.style.transform=`translateY(${e.clientY-(reorderState.startY||(reorderState.startY=e.clientY))}px)`;
+  let overIdx=null;
+  for(const it of items){
+    if(it===li)continue;
+    const r=it.getBoundingClientRect();
+    it.classList.toggle('drag-over',e.clientY>r.top&&e.clientY<r.bottom);
+    if(e.clientY>r.top&&e.clientY<r.bottom)overIdx=parseInt(it.dataset.idx);
+  }
+  reorderState.overIdx=overIdx;
+}
+function onReorderEnd(){
+  if(!reorderState)return;
+  const {li,startIdx,overIdx,items}=reorderState;
+  document.removeEventListener('pointermove',onReorderMove);
+  li.classList.remove('dragging');
+  li.style.transform='';li.style.position='';li.style.zIndex='';
+  items.forEach(it=>it.classList.remove('drag-over'));
+  if(overIdx!==null&&overIdx!==startIdx){
+    const moved=dashSections.splice(startIdx,1)[0];
+    dashSections.splice(overIdx,0,moved);
+    saveSections();applyDashSettings();
+  }
+  renderSettingsList();
+  reorderState=null;
 }
 
 (async function bootstrap(){
