@@ -35,10 +35,6 @@
   .btn-load{background:var(--bb-blue);color:#fff;}
   .btn-load:hover{background:var(--bb-sky);}
   .btn-load:disabled{opacity:.45;cursor:not-allowed;transform:none;}
-  .statusbar{background:#fff;border-bottom:1px solid var(--bb-border);padding:6px 32px;font-size:12px;color:var(--bb-muted);display:flex;align-items:center;gap:8px;min-height:34px;}
-  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--bb-green);flex-shrink:0;}
-  .status-dot.demo{background:var(--bb-accent);}
-  .status-dot.loading{background:var(--bb-sky);animation:pulse 1s infinite;}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
   .main{max-width:1280px;margin:0 auto;padding:28px 32px 48px;}
   .loading-state{display:none;text-align:center;padding:80px 32px;}
@@ -93,7 +89,7 @@
   .page-divider::after{content:attr(data-label);position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--bb-light);padding:0 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--bb-muted);white-space:nowrap;}
   .footer{background:var(--bb-navy);color:rgba(255,255,255,.5);text-align:center;font-size:11px;padding:18px 32px;letter-spacing:.3px;}
   .footer strong{color:rgba(255,255,255,.8);}
-  @media print{.topbar,.filterbar,.statusbar,.btn-pdf{display:none!important;}.main{padding:12px 16px;}body{background:#fff;}.kpi-card,.chart-card{break-inside:avoid;box-shadow:none;}.page-divider{break-before:page;}.footer{display:none;}}
+  @media print{.topbar,.filterbar,.btn-pdf{display:none!important;}.main{padding:12px 16px;}body{background:#fff;}.kpi-card,.chart-card{break-inside:avoid;box-shadow:none;}.page-divider{break-before:page;}.footer{display:none;}}
 .btn-settings{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);padding:9px 12px;}
 .btn-settings:hover{background:rgba(255,255,255,.25);}
 .settings-overlay{display:none;position:fixed;inset:0;background:rgba(10,30,60,.5);z-index:600;}
@@ -182,11 +178,6 @@ body.gate-locked{overflow:hidden;}
 </header>
 
 <nav class="filterbar" id="filterBar"><div class="filter-sep"></div><span class="filter-label" style="margin-right:6px;">Location Group:</span><select class="group-select" id="groupSelect" onchange="onGroupChange()"><option value="all">All Locations</option></select></nav>
-
-<div class="statusbar" id="statusBar">
-  <div class="status-dot demo" id="statusDot"></div>
-  <span id="statusText">Using built-in data (Jan–June 2026).</span>
-</div>
 
 <div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
   <div class="settings-panel">
@@ -894,9 +885,6 @@ function lastDay(ym){const[y,m]=ym.split('-');return new Date(+y,+m,0).getDate()
 
 function processAndRender(){
   buildFilterBar();setLoading(false);
-  const dot=document.getElementById('statusDot'),txt=document.getElementById('statusText');
-  if(USE_DEMO){dot.className='status-dot demo';txt.textContent='Using built-in data (Jan–May 2026).';}
-  else{dot.className='status-dot';txt.textContent='Data current through '+MONTHS.map(fmtYM).join(', ')+' · '+RAW.events.length+' audit events';}
   if(MONTHS.length){document.getElementById('footerRange').textContent=fmtYM(MONTHS[0]).split(' ')[0]+'–'+fmtYM(MONTHS[MONTHS.length-1]);}
   renderDashboard('ytd');
   applyDashSettings();
@@ -985,7 +973,7 @@ function buildDonut(id,labels,values,colors,cutout=62){dc(id);CHARTS[id]=new Cha
 function buildBar(id,labels,datasets,opts={}){dc(id);CHARTS[id]=new Chart(document.getElementById(id).getContext('2d'),{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:opts.legend!==false,labels:{font:{family:'Barlow',size:11},padding:10}}},scales:{x:{stacked:!!opts.stacked,grid:{display:false},ticks:{font:{family:'Barlow',size:11}}},y:{stacked:!!opts.stacked,beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{family:'Barlow',size:11}},max:opts.yMax}}}});}
 function buildHBar(id,labels,values,color){dc(id);CHARTS[id]=new Chart(document.getElementById(id).getContext('2d'),{type:'bar',data:{labels,datasets:[{data:values,backgroundColor:color,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},sounds:{x:{beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{family:'Barlow',size:11}}},y:{grid:{display:false},ticks:{font:{family:'Barlow',size:11}}}},scales:{x:{beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{family:'Barlow',size:11}}},y:{grid:{display:false},ticks:{font:{family:'Barlow',size:11}}}}}});}
 function renderTop10(bodyId,sorted,isPos){const max=sorted[0]?.[1]||1;document.getElementById(bodyId).innerHTML=sorted.map(([q,c],i)=>{const label=q.replace(/\\t|\\n|\t|\n/g,'').trim();const barW=Math.max(4,Math.round(c/max*80));return '<tr><td><span class="rank-badge '+(i<3?'top3':'')+'">'+( i+1)+'</span></td><td>'+label+'</td><td><div class="count-bar"><div class="count-bar-fill'+(isPos?' pos':'')+'" style="width:'+barW+'px"></div><span class="count-val">'+c+'</span></div></td></tr>';}).join('');}
-function setLoading(on){document.getElementById('loadingState').classList.toggle('show',on);document.getElementById('dashContent').style.display=on?'none':'';if(on){document.getElementById('statusDot').className='status-dot loading';document.getElementById('statusText').textContent='Loading data…';}}
+function setLoading(on){document.getElementById('loadingState').classList.toggle('show',on);document.getElementById('dashContent').style.display=on?'none':'';}
 function printToPDF(){document.title='Balfour Beatty Audits Dashboard – '+document.getElementById('periodTitle').textContent;window.print();}
 
 // ── Dashboard Customization ──────────────────────────────────
